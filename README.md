@@ -59,6 +59,13 @@ Prerequisites: Python 3.12 installed and on PATH. Verify with `py -3.12 --versio
 
 6. In VS Code: `Ctrl+Shift+P` → "Python: Select Interpreter" → choose the `.venv` option.
 
+7. Verify the setup:
+Run
+```
+   python scripts/setup_check.py
+```
+   Should print Python version and "OK" for all four libraries, ending with "All good."
+
 ## Data handling
 
 - **Never commit hospital data.** The `.gitignore` blocks all CSV/XLSX files and the `data/raw/`, `data/sample/`, `data/profiled/` directories. Belt and braces, but verify before every commit.
