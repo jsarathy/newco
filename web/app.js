@@ -7,7 +7,10 @@ const team = [
 
 const hospitals = [
   { id: "jyothi", name: "Jyothi Hospitals / Jyothi Nursing Home, Vizianagaram" },
-  // add more hospitals here
+  { id: "maasharada", name: "MaaSharada" },
+  { id: "swaasthya", name: "Swaasthya" },
+  { id: "samarpan", name: "Samarpan" },
+  { id: "srisuriya", name: "Sri Suriya" },
 ];
 
 // --- Render team ---
