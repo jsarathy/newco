@@ -1,0 +1,73 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1a1a2e;
+  background: #f4f5f7;
+  line-height: 1.5;
+}
+
+header {
+  background: #16213e;
+  color: #fff;
+  padding: 1.5rem 2rem;
+}
+
+header h1 { font-size: 1.6rem; }
+header p { color: #a9b4cc; font-size: 0.95rem; margin-top: 0.25rem; }
+
+main {
+  display: flex;
+  min-height: calc(100vh - 90px);
+}
+
+#hospital-panel {
+  width: 260px;
+  background: #fff;
+  border-right: 1px solid #e0e3e8;
+  padding: 1.5rem 1rem;
+  flex-shrink: 0;
+}
+
+#hospital-panel h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+#hospital-list { list-style: none; }
+
+#hospital-list li {
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.15s;
+}
+
+#hospital-list li:hover { background: #eef1f6; }
+
+#content { flex: 1; padding: 2rem; }
+
+#content h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1.25rem;
+}
+
+#team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.team-card {
+  background: #fff;
+  border: 1px solid #e0e3e8;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.team-card .name { font-weight: 600; font-size: 1.05rem; }
+.team-card .role { color: #6b7280; font-size: 0.9rem; margin-top: 0.25rem; }
