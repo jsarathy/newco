@@ -21,9 +21,34 @@
     <section id="content">
       <h2>Team</h2>
       <div id="team"></div>
+
+      <h2 style="margin-top:2.5rem;">Calendar</h2>
+      <div id="calendar">
+        <div class="cal-banner">
+          <button class="cal-arrow" id="cal-prev" type="button" aria-label="Previous month">&larr;</button>
+          <div class="cal-range" id="cal-range"></div>
+          <button class="cal-arrow" id="cal-next" type="button" aria-label="Next month">&rarr;</button>
+          <div class="cal-search-wrap">
+            <input id="cal-search" type="text" autocomplete="off" placeholder="Search events&hellip;">
+            <div class="cal-results" id="cal-results" hidden></div>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
     </section>
   </main>
 
+  <div class="cal-modal-overlay" id="cal-modal" hidden>
+    <div class="cal-modal" role="dialog" aria-label="Day events">
+      <div class="cal-modal-head">
+        <div class="cal-modal-date" id="cal-modal-date"></div>
+        <button class="cal-modal-close" id="cal-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="cal-modal-body" id="cal-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="events.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
