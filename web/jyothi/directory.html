@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jyothi Hospitals — Directory</title>
+  <style>
+    :root {
+      --paper:#FAF7F0; --paper-deep:#F2ECDC; --paper-warm:#F6F0DE;
+      --ink:#1A1816; --ink-soft:#4A463F; --ink-mute:#8A8276;
+      --rule:#D9D2C2; --rule-soft:#E8E2D2;
+      --accent:#8B3A2E; --accent-soft:#C56F58; --gold:#8B6F2E;
+      --green:#5A6B4C; --plum:#6E4862; --slate:#4A5E6B;
+      --status-settled:var(--green); --status-pending:var(--ink-mute);
+      --status-denied:var(--accent); --status-partial:var(--gold);
+      --status-query:var(--plum); --status-preauth:var(--slate);
+      --font-display:'Fraunces','Georgia','Times New Roman',serif;
+      --font-body:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+      --font-mono:'JetBrains Mono','Menlo','Monaco',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+    body{display:flex;flex-direction:column;background:radial-gradient(ellipse 800px 400px at 8% 0%,rgba(139,58,46,0.035),transparent 60%),radial-gradient(ellipse 600px 300px at 92% 100%,rgba(74,94,107,0.03),transparent 60%),var(--paper);}
+    header{padding:22px 44px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:32px;background:rgba(250,247,240,0.6);backdrop-filter:blur(8px);}
+    .brand{display:flex;flex-direction:column;gap:6px;flex:1 1 0;min-width:0;align-items:flex-start;}
+    .brand-image{height:48px;width:auto;display:block;border-radius:3px;}
+    .brand-text{padding-left:2px;}
+    .brand-text .address{font-family:var(--font-display);font-style:italic;font-weight:300;font-size:12px;color:var(--ink-mute);}
+    .brand-text .sublabel{font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-top:4px;}
+    .brand-text .rohini{font-size:10.5px;letter-spacing:0.04em;color:var(--ink-mute);font-weight:500;margin-top:3px;}
+    .summary{display:flex;gap:28px;align-items:flex-end;flex:1 1 0;justify-content:flex-end;}
+    .stat{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:0 4px 0 16px;border-left:1px solid var(--rule-soft);}
+    .stat:first-child{border-left:0;padding-left:0;}
+    .stat .num{font-family:var(--font-display);font-size:26px;font-weight:400;color:var(--ink);line-height:1;}
+    .stat .label{font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-mute);display:flex;align-items:center;gap:6px;}
+    .stat .label .dot{width:6px;height:6px;border-radius:50%;}
+    main{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0;}
+    aside{border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0;background:rgba(250,247,240,0.4);}
+    .search{padding:18px 24px 14px;border-bottom:1px solid var(--rule-soft);}
+    .search input{width:100%;border:0;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--ink);padding:8px 0;border-bottom:1px solid var(--rule);outline:none;transition:border-color 0.2s;}
+    .search input:focus{border-bottom-color:var(--accent);}
+    .search input::placeholder{color:var(--ink-mute);font-style:italic;}
+    .search .count{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute);margin-top:8px;}
+    .cohort-tabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--rule-soft);}
+    .cohort-tab{flex:1;font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-mute);background:none;border:0;border-bottom:2px solid transparent;padding:10px 6px;cursor:pointer;transition:color 0.15s,border-color 0.15s;}
+    .cohort-tab:hover{color:var(--ink-soft);}
+    .cohort-tab .ct{color:var(--accent-soft);margin-left:6px;}
+    .cohort-tab.active{color:var(--ink);border-bottom-color:var(--accent);}
+    .patient-list{flex:1;overflow-y:auto;padding:4px 0;}
+    .patient-item{padding:14px 24px 14px 28px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.15s;position:relative;}
+    .patient-item:hover,.patient-item.active{background:var(--paper-deep);}
+    .patient-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
+    .patient-item .name{font-family:var(--font-display);font-size:15.5px;color:var(--ink);font-weight:500;letter-spacing:-0.005em;line-height:1.2;}
+    .patient-item .meta-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-mute);}
+    .patient-item .consultant{color:var(--ink-soft);font-weight:500;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .patient-item .payer{text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;font-size:10.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    section.detail{overflow-y:auto;padding:44px 56px 60px;}
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:22px;padding-bottom:60px;}
+    .empty-state svg{width:120px;opacity:0.45;color:var(--ink-mute);}
+    .empty-state .empty-title{font-family:var(--font-display);font-style:italic;font-weight:300;font-size:22px;color:var(--ink-soft);max-width:460px;line-height:1.35;}
+    .empty-state .empty-sub{font-size:12.5px;color:var(--ink-mute);max-width:420px;font-style:italic;}
+    .patient-card{margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--rule);}
+    .patient-card h2{font-family:var(--font-display);font-weight:400;font-size:34px;letter-spacing:-0.018em;color:var(--ink);line-height:1.08;}
+    .case-id{font-family:var(--font-mono);font-size:11px;color:var(--ink-mute);margin-top:6px;margin-bottom:28px;}
+    .patient-meta-grid{display:grid;grid-template-columns:1fr 1fr 1.3fr 1.3fr 1.2fr;gap:24px;align-items:flex-start;}
+    .meta-cell .meta-label{font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:8px;}
+    .meta-cell .meta-value{font-family:var(--font-display);font-size:16px;color:var(--ink);font-weight:400;line-height:1.25;}
+    .meta-cell .meta-sub{font-size:11.5px;color:var(--ink-mute);margin-top:2px;font-style:italic;}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 12px;border-radius:100px;background:var(--paper-deep);font-size:13px;font-weight:500;font-family:var(--font-body);color:var(--ink);}
+    .patient-notes{margin-top:22px;padding:14px 18px;min-height:3em;background:var(--paper-warm);border-left:2px solid var(--accent-soft);font-family:var(--font-display);font-style:italic;font-weight:300;color:var(--ink-soft);font-size:14px;line-height:1.5;}
+    .docs-section{margin-bottom:36px;}
+    .docs-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+    .docs-head h3{font-family:var(--font-display);font-weight:400;font-size:13px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ink-mute);}
+    .docs-head .docs-count{font-size:11px;color:var(--ink-mute);font-style:italic;}
+    .docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+    .doc-link{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--paper-warm);border:1px solid var(--rule-soft);border-radius:4px;color:var(--ink);text-decoration:none;font-size:12.5px;transition:background 0.15s,border-color 0.15s;}
+    .doc-link:hover{background:var(--paper-deep);border-color:var(--accent-soft);}
+    .doc-icon{width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--paper);border:1px solid var(--rule);border-radius:3px;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);text-transform:uppercase;}
+    .doc-meta{display:flex;flex-direction:column;min-width:0;}
+    .doc-name{font-size:12.5px;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+    .doc-size{font-family:var(--font-mono);font-size:10px;color:var(--ink-mute);margin-top:1px;}
+    .docs-empty{padding:12px 14px;background:var(--paper-warm);border-left:2px solid var(--rule);font-style:italic;color:var(--ink-mute);font-size:12.5px;}
+    .timeline-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:24px;}
+    .timeline-head h3{font-family:var(--font-display);font-weight:400;font-size:13px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ink-mute);}
+    .timeline-head .legend{display:flex;gap:16px;font-size:10px;color:var(--ink-mute);letter-spacing:0.06em;}
+    .timeline-head .swatch{display:inline-flex;align-items:center;gap:6px;}
+    .timeline-head .ring{width:11px;height:11px;border-radius:50%;background:var(--paper);border:2px solid var(--ink-mute);}
+    .timeline-head .ring.operational{border-color:var(--slate);}
+    .timeline-head .ring.payer{border-color:var(--accent);}
+    .timeline{position:relative;padding-left:28px;}
+    .timeline::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:1px;background:var(--rule);}
+    .event{position:relative;padding:0 0 28px;}
+    
+    .event:last-child{padding-bottom:0;}
+    .detached-section{margin-top:14px;padding-top:24px;border-top:1px dashed var(--rule);}
+    .detached-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:16px;flex-wrap:wrap;}
+    .detached-head h3{font-family:var(--font-display);font-weight:400;font-size:13px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ink-mute);}
+    .detached-note{font-size:11px;color:var(--ink-mute);font-style:italic;}
+    .detached-list{display:flex;flex-direction:column;gap:18px;padding-left:28px;}
+    .detached-list .event{padding:0;}
+    .detached-list .event::before{display:block;border-radius:2px;}
+    .detached-list .event::after{display:none;}
+    .event::before{content:'';position:absolute;left:-28px;top:5px;width:13px;height:13px;border-radius:50%;background:var(--paper);border:2px solid var(--ink-mute);transition:background 0.2s,transform 0.2s;}
+    .event.layer-operational_telemetry::before{border-color:var(--slate);}
+    .event.layer-payer_adapter::before{border-color:var(--accent);}
+    .event.provenance-inferred::before{background:var(--paper-deep);}
+    .event.provenance-awaiting_data::before{background:var(--paper-deep);border-style:dashed;}
+    .event.expanded::before{transform:scale(1.2);background:var(--accent);border-color:var(--accent);}
+    .event-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;cursor:pointer;user-select:none;}
+    .event-head:hover .event-type{color:var(--accent);}
+    .event-head:hover::before, .event:hover::before{background:var(--paper-warm);}
+    .event-body{display:none;}
+    .event.expanded .event-body{display:block;}
+    /* Wider clickable hit-zone over the timeline circle */
+    .event::after{content:'';position:absolute;left:-36px;top:0;width:28px;height:28px;cursor:pointer;}
+    .event-time{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-mute);white-space:nowrap;}
+    .event-day{font-family:var(--font-mono);font-size:9.5px;color:var(--accent);padding:1px 6px;border:1px solid var(--rule);border-radius:3px;white-space:nowrap;}
+    .event-type{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--ink);letter-spacing:-0.005em;transition:color 0.15s;}
+    .event-source-marker{font-size:11px;color:var(--accent);font-family:var(--font-mono);}
+    .event-chevron{font-size:10px;color:var(--ink-mute);transition:transform 0.2s;margin-left:auto;}
+    .event.expanded .event-chevron{transform:rotate(90deg);color:var(--accent);}
+    .event-meta{font-size:11px;color:var(--ink-mute);margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .layer-tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:500;}
+    .layer-tag.operational_telemetry{background:rgba(74,94,107,0.10);color:var(--slate);}
+    .layer-tag.payer_adapter{background:rgba(139,58,46,0.10);color:var(--accent);}
+    .actor{font-size:11px;color:var(--ink-mute);}
+    .provenance-tag{font-size:10px;color:var(--ink-mute);font-style:italic;letter-spacing:0.04em;}
+    .provenance-tag.inferred{color:var(--gold);}
+    .provenance-tag.awaiting_data{color:var(--accent-soft);}
+    .event-summary{font-size:13px;color:var(--ink-soft);line-height:1.55;max-width:760px;word-wrap:break-word;}
+    .event-expand{display:none;margin-top:12px;padding:16px 18px;background:var(--paper-warm);border:1px solid var(--rule-soft);border-left:2px solid var(--accent-soft);border-radius:0 4px 4px 0;}
+    .event.expanded .event-expand{display:block;}
+    .expand-row{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:6px 0;border-bottom:1px solid var(--rule-soft);font-size:12.5px;}
+    .expand-row:last-of-type{border-bottom:0;}
+    .expand-key{font-size:9.5px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-mute);padding-top:3px;}
+    .expand-val{font-family:var(--font-mono);font-size:11.5px;color:var(--ink);word-wrap:break-word;overflow-wrap:anywhere;}
+    .payload-table{width:100%;border-collapse:collapse;margin-top:10px;background:var(--paper-warm);border:1px solid var(--rule-soft);border-radius:3px;table-layout:auto;}
+    .payload-table td{padding:7px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;font-size:12px;line-height:1.5;}
+    .payload-table tr:last-child > td{border-bottom:0;}
+    .payload-table .pkey{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-mute);letter-spacing:0.02em;width:1%;white-space:nowrap;padding-right:18px;}
+    .payload-table .pval{color:var(--ink);word-break:break-word;overflow-wrap:anywhere;font-family:var(--font-body);}
+    .payload-table .payload-table{background:transparent;border:0;margin-top:0;margin-left:-4px;}
+    .payload-table .payload-table td{padding:4px 10px;border-bottom:1px dashed var(--rule-soft);}
+    .payload-table .payload-table .pkey{font-size:10px;}
+    .tabular-array{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px;background:var(--paper);border:1px solid var(--rule-soft);border-radius:3px;}
+    .tabular-array th{text-align:left;padding:7px 10px;font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--ink-mute);letter-spacing:0.06em;text-transform:uppercase;border-bottom:1px solid var(--rule);background:var(--paper-deep);}
+    .tabular-array td{padding:7px 10px;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--ink);}
+    .tabular-array tr:last-child > td{border-bottom:0;}
+    .tabular-array td.num{text-align:right;font-variant-numeric:tabular-nums;}
+    .tabular-array th:has(+ td.num),.tabular-array .num + th{text-align:right;}
+    .record-list{display:flex;flex-direction:column;gap:12px;margin-top:8px;width:100%;}
+    .record-block{display:flex;gap:12px;background:var(--paper);border:1px solid var(--rule-soft);border-left:2px solid var(--accent-soft);border-radius:0 4px 4px 0;padding:12px 14px;}
+    .record-index{font-family:var(--font-mono);font-size:10.5px;color:var(--accent);font-weight:600;flex:0 0 18px;text-align:right;padding-top:3px;}
+    .record-fields{flex:1 1 auto;min-width:0;}
+    .record-row{display:grid;grid-template-columns:160px 1fr;gap:14px;padding:5px 0;border-bottom:1px solid var(--rule-soft);}
+    .record-row:last-child{border-bottom:0;}
+    .record-key{font-size:9.5px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-mute);padding-top:3px;}
+    .record-val{font-size:12.5px;color:var(--ink);line-height:1.55;word-wrap:break-word;overflow-wrap:anywhere;min-width:0;}
+    @media (max-width:640px){.record-row{grid-template-columns:1fr;gap:2px;}}
+    .payload-table .rupee{font-variant-numeric:tabular-nums;font-weight:500;color:var(--ink);white-space:nowrap;}
+    .payload-table .resolved{border-bottom:1px dotted var(--rule);cursor:help;}
+    .pv-empty{color:var(--ink-mute);font-style:italic;font-size:11.5px;}
+    .payload-raw{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-soft);background:var(--paper-warm);padding:10px 14px;border-radius:3px;border:1px solid var(--rule-soft);margin-top:10px;white-space:pre-wrap;word-break:break-word;line-height:1.5;}
+    .source-link-row{margin-top:14px;padding:10px 14px;background:var(--paper);border:1px solid var(--accent-soft);border-radius:4px;display:flex;align-items:center;gap:10px;font-size:12.5px;}
+    .source-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+    .source-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:var(--paper);border:1px solid var(--accent-soft);border-radius:4px;font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:500;max-width:100%;}
+    .source-chip:hover{background:var(--paper-warm);border-color:var(--accent);color:var(--ink);}
+    .source-chip .icon{font-family:var(--font-mono);font-size:8.5px;font-weight:600;text-transform:uppercase;background:var(--paper-deep);border:1px solid var(--rule);border-radius:3px;min-width:22px;height:17px;display:flex;align-items:center;justify-content:center;color:var(--accent);flex:0 0 auto;}
+    .source-chip .fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .source-link-row a{color:var(--accent);text-decoration:none;font-weight:500;border-bottom:1px solid var(--accent-soft);}
+    .source-link-row a:hover{color:var(--ink);border-bottom-color:var(--ink);}
+    .source-link-row .icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--paper-deep);border:1px solid var(--rule);border-radius:3px;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);text-transform:uppercase;}
+    footer{padding:14px 44px;border-top:1px solid var(--rule);font-size:10.5px;color:var(--ink-mute);display:flex;justify-content:space-between;align-items:center;letter-spacing:0.04em;}
+    footer em{font-family:var(--font-display);font-style:italic;}
+    ::-webkit-scrollbar{width:8px;height:8px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px;}
+    ::-webkit-scrollbar-thumb:hover{background:var(--ink-mute);}
+    @media (max-width:900px){main{grid-template-columns:1fr;}aside{border-right:0;border-bottom:1px solid var(--rule);max-height:40vh;}header{flex-direction:column;align-items:flex-start;gap:18px;padding:20px 24px;}section.detail{padding:28px 24px;}.patient-meta-grid{grid-template-columns:1fr 1fr;}}
+    .load-error{max-width:560px;margin:80px auto;padding:28px 32px;border:1px solid var(--rule);background:var(--paper-warm);font-family:var(--font-display);font-style:italic;color:var(--ink-soft);line-height:1.6;}
+    .load-error code{font-family:var(--font-mono);font-style:normal;font-size:12px;background:var(--paper-deep);padding:2px 6px;border-radius:2px;}
+    .header-center{flex:0 0 auto;display:flex;justify-content:center;}
+    .dir-pill{font-family:var(--font-mono);font-size:12.5px;letter-spacing:0.12em;text-transform:uppercase;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:11px 30px;cursor:pointer;font-weight:600;box-shadow:0 3px 10px rgba(139,58,46,0.28);transition:all 0.15s;}
+    .dir-pill:hover{background:var(--ink);border-color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.3);transform:translateY(-1px);}
+    @media (max-width:900px){.header-center{order:3;width:100%;justify-content:flex-start;}}
+    .dir-pill:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .dir-overlay{position:fixed;inset:0;background:rgba(20,16,14,0.46);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px;}
+    .dir-overlay[hidden]{display:none;}
+    .dir-modal{background:var(--paper);border:1px solid var(--rule);border-radius:6px;box-shadow:0 24px 60px rgba(0,0,0,0.28);width:min(720px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;}
+    .dir-modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px 14px;border-bottom:1px solid var(--rule);}
+    .dir-title{font-family:var(--font-display);font-size:19px;font-weight:500;color:var(--ink);}
+    .dir-sub{font-size:11px;color:var(--ink-mute);font-style:italic;margin-top:3px;}
+    .dir-close{font-size:24px;line-height:1;color:var(--ink-mute);background:none;border:0;cursor:pointer;padding:0 4px;}
+    .dir-close:hover{color:var(--accent);}
+    .dir-tabs{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap;}
+    .dir-tab{font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-mute);background:none;border:0;border-bottom:2px solid transparent;padding:7px 10px;cursor:pointer;}
+    .dir-tab .ct{color:var(--accent-soft);margin-left:5px;}
+    .dir-tab.active{color:var(--ink);border-bottom-color:var(--accent);}
+    .dir-body{padding:14px 18px 20px;overflow-y:auto;}
+    .dir-entry{border:1px solid var(--rule-soft);border-radius:4px;margin-bottom:8px;background:var(--paper-warm);}
+    .dir-entry-head{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;}
+    .dir-entry-head:hover .dir-label{color:var(--accent);}
+    .dir-label{font-family:var(--font-display);font-size:14.5px;color:var(--ink);flex:1 1 auto;}
+    .dir-badge{font-family:var(--font-mono);font-size:10px;color:var(--ink-mute);padding:2px 8px;border:1px solid var(--rule);border-radius:999px;white-space:nowrap;}
+    .dir-badge.drift{color:var(--gold);border-color:var(--gold);}
+    .dir-chev{font-size:11px;color:var(--ink-mute);transition:transform 0.15s;}
+    .dir-entry.open .dir-chev{transform:rotate(90deg);color:var(--accent);}
+    .dir-detail{display:none;padding:0 14px 12px;}
+    .dir-entry.open .dir-detail{display:block;}
+    .dir-variant{padding:8px 0;border-top:1px dashed var(--rule-soft);}
+    .dir-variant-raw{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-soft);word-break:break-word;}
+    .dir-variant-pts{font-size:11.5px;color:var(--ink-mute);margin-top:4px;line-height:1.5;}
+    .dir-variant-pts b{font-weight:400;color:var(--accent);cursor:pointer;}
+    .dir-variant-pts b:hover{text-decoration:underline;}
+    @media (max-width:900px){.header-center{align-items:flex-start;}}
+    /* ---- skeleton spine (v4/v5/v6) ---- */
+    .event.skeleton-absent{opacity:0.34;pointer-events:none;}
+    .event.skeleton-absent::before{border-style:dashed;border-color:var(--rule);background:var(--paper);}
+    .event.skeleton-absent .event-head{cursor:default;}
+    .event.skeleton-absent .event-type{color:var(--ink-mute);font-weight:400;font-style:italic;}
+    .skeleton-absent-label{font-size:9.5px;color:var(--ink-mute);font-style:italic;letter-spacing:0.08em;text-transform:uppercase;margin-left:8px;}
+    .event.skeleton-present .event-type{font-weight:600;color:var(--ink);}
+    .event.skeleton-present.layer-operational_telemetry::before{background:var(--slate);}
+    .event.skeleton-present.layer-payer_adapter::before{background:var(--accent);}
+    .event.skeleton-present.expanded::before{background:var(--accent);border-color:var(--accent);}
+    .exceptions-node .event-type{color:var(--plum)!important;}
+    .exceptions-node::before{border-color:var(--plum)!important;}
+    .event.skeleton-present.exceptions-node::before{background:var(--plum);}
+    .nested-timeline{padding-left:24px;margin-top:10px;}
+    .nested-timeline::before{left:6px;}
+
+    /* ---- Medi Assist tariff (DB-backed) v4.4 ---- */
+    .dir-tariff-btn{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.06em;text-transform:uppercase;color:#fff;background:var(--accent);border:0;border-radius:999px;padding:4px 11px;cursor:pointer;margin-left:6px;white-space:nowrap;}
+    .dir-tariff-btn:hover{background:var(--accent-soft);}
+    .tar-overlay{position:fixed;inset:0;background:rgba(20,16,14,0.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:24px;}
+    .tar-overlay[hidden]{display:none;}
+    .tar-modal{background:var(--paper);border:1px solid var(--rule);border-radius:6px;box-shadow:0 28px 70px rgba(0,0,0,0.34);width:min(1010px,100%);height:min(880px,92vh);display:flex;flex-direction:column;overflow:hidden;}
+    .tar-head{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 22px 12px;border-bottom:1px solid var(--rule);}
+    .tar-title{font-family:var(--font-display);font-size:19px;font-weight:500;color:var(--ink);}
+    .tar-sub{font-size:11px;color:var(--ink-mute);font-style:italic;margin-top:3px;max-width:680px;}
+    .tar-close{font-size:24px;line-height:1;color:var(--ink-mute);background:none;border:0;cursor:pointer;padding:0 4px;}
+    .tar-close:hover{color:var(--accent);}
+    .tar-tabs{display:flex;gap:2px;padding:8px 18px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap;background:var(--paper-deep);}
+    .tar-tab{font-family:var(--font-mono);font-size:10px;letter-spacing:0.03em;text-transform:uppercase;color:var(--ink-mute);background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+    .tar-tab.active{color:var(--ink);border-bottom-color:var(--accent);}
+    .tar-tab.live::after{content:'DB';font-size:8px;color:#fff;background:var(--green);border-radius:999px;padding:0 5px;}
+    .tar-tab.dim{opacity:0.5;}
+    .tar-db-bar{display:flex;align-items:center;gap:12px;padding:10px 22px;border-bottom:1px solid var(--rule);flex-wrap:wrap;}
+    .tar-db-bar[hidden]{display:none;}
+    .tar-db-bar input{flex:1 1 240px;border:1px solid var(--rule);background:var(--paper-warm);border-radius:4px;padding:8px 11px;font-size:13px;font-family:var(--font-body);color:var(--ink);outline:none;}
+    .tar-db-bar input:focus{border-color:var(--accent);}
+    .tar-db-meta{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-mute);white-space:nowrap;}
+    .tar-pill{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);background:var(--paper);border:1px solid var(--accent);border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap;}
+    .tar-pill:hover{background:var(--accent);color:#fff;}
+    .tar-pill[hidden]{display:none;}
+    .tar-thead{display:grid;gap:12px;padding:8px 22px;border-bottom:1px solid var(--rule);background:var(--paper-deep);font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-mute);}
+    .tar-thead[hidden]{display:none;}
+    .tar-thead .trate{text-align:right;}
+    .tar-stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;position:relative;}
+    .tar-table-wrap{flex:1 1 auto;overflow-y:auto;padding:0 0 24px;}
+    .tar-cat{font-family:var(--font-display);font-size:13px;color:var(--ink);background:var(--paper-deep);padding:7px 22px;position:sticky;top:0;border-bottom:1px solid var(--rule-soft);z-index:1;}
+    .tar-cat .cc{font-family:var(--font-mono);font-size:10px;color:var(--ink-mute);margin-left:8px;}
+    .tar-trow{display:grid;gap:12px;padding:6px 22px;border-bottom:1px solid var(--rule-soft);font-size:12.5px;align-items:baseline;}
+    .tar-trow:hover{background:var(--paper-warm);}
+    .tar-trow .tid,.tar-trow .tcode{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-mute);}
+    .tar-trow .tincl{font-family:var(--font-mono);font-size:10px;color:var(--ink-soft);}
+    .tar-trow .trem{font-size:11px;color:var(--ink-mute);font-style:italic;}
+    .tar-trow .trate{font-family:var(--font-mono);text-align:right;color:var(--ink);}
+    .tar-trow .trate.rup::before{content:'\20b9 ';color:var(--ink-mute);}
+    .trunc{font-family:var(--font-mono);font-size:9px;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 4px;margin-left:6px;cursor:help;}
+    .tar-trow mark{background:var(--gold);color:#fff;padding:0 2px;border-radius:2px;}
+    .tar-legend{position:absolute;top:8px;right:16px;width:min(470px,92%);max-height:78%;overflow-y:auto;background:var(--paper);border:1px solid var(--rule);border-radius:6px;box-shadow:0 18px 44px rgba(0,0,0,0.28);padding:14px 16px 16px;z-index:6;}
+    .tar-legend[hidden]{display:none;}
+    .leg-title{display:flex;justify-content:space-between;align-items:center;}
+    .leg-title b{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--ink);}
+    .leg-x{font-size:18px;line-height:1;color:var(--ink-mute);background:none;border:0;cursor:pointer;}
+    .leg-h{font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-mute);margin:14px 0 6px;border-bottom:1px solid var(--rule-soft);padding-bottom:4px;}
+    .leg-row{font-size:12px;color:var(--ink-soft);margin-bottom:5px;line-height:1.45;}
+    .leg-row b{font-family:var(--font-mono);color:var(--accent);margin-right:6px;}
+    .leg-term{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;line-height:1.45;}
+    .tar-placeholder{padding:40px 22px;color:var(--ink-mute);font-style:italic;font-size:13px;line-height:1.6;}
+    .tar-loading{padding:30px 22px;color:var(--ink-mute);font-size:13px;}
+
+    .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;}
+    .staff-card{margin:0;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--paper-warm);box-shadow:0 1px 3px rgba(0,0,0,0.07);}
+    .staff-card img{display:block;width:100%;height:auto;}
+  </style>
+  <style>
+    body{margin:0;background:var(--paper-deep,#e9e2d6);}
+    .dir-overlay{position:fixed;}
+  </style>
+</head>
+<body>
+  </header>
+  <div class="dir-overlay" id="dir-overlay" hidden>
+    <div class="dir-modal" role="dialog" aria-label="Directory">
+      <div class="dir-modal-head">
+        <div>
+          <div class="dir-title">Directory</div>
+          <div class="dir-sub">Reference entities drawn from this hospital's own records · raw variants preserved</div>
+        </div>
+        <button class="dir-close" id="dir-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="dir-tabs" id="dir-tabs"></div>
+      <div class="dir-body" id="dir-body"></div>
+    </div>
+  </div>
+  <div class="tar-overlay" id="tar-overlay" hidden>
+    <div class="tar-modal" role="dialog" aria-label="Medi Assist tariff schedule">
+      <div class="tar-head">
+        <div>
+          <div class="tar-title">Medi Assist &mdash; Negotiated Tariff Schedule</div>
+          <div class="tar-sub">Each tab is a <b>view over an external SQLite table</b> sitting beside this file &mdash; rows are queried live, not stored in this page.</div>
+        </div>
+        <button class="tar-close" id="tar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="tar-tabs" id="tar-tabs"></div>
+      <div class="tar-db-bar" id="tar-db-bar" hidden>
+        <input id="tar-db-search" type="text" autocomplete="off" placeholder="Search this table&hellip;">
+        <button id="tar-legend-pill" class="tar-pill" type="button" hidden>&#9432; Notes &amp; codes</button>
+        <span class="tar-db-meta" id="tar-db-meta"></span>
+      </div>
+      <div class="tar-thead" id="tar-thead" hidden></div>
+      <div class="tar-stage">
+        <div class="tar-legend" id="tar-legend" hidden></div>
+        <div class="tar-table-wrap" id="tar-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="patients.js"></script>
+  <script src="patients_cash_only.js"></script>
+  <script src="MediAssist_Tariff/sql-asm.js"></script>
+  <script src="MediAssist_Tariff/packages.db.js"></script>
+  <script src="MediAssist_Tariff/room.db.js"></script>
+  <script src="MediAssist_Tariff/investigation.db.js"></script>
+  <script src="MediAssist_Tariff/procedures.db.js"></script>
+  <script src="MediAssist_Tariff/equipment.db.js"></script>
+  <script src="MediAssist_Tariff/professional.db.js"></script>
+  <script src="Jyothi_Staff/staff.js"></script>
+
+  <script>
+  (function(){
+    if(typeof PATIENTS==='undefined'||!Array.isArray(PATIENTS)){
+      document.body.innerHTML='<p style="font-family:sans-serif;padding:40px">patients.js not found beside this file.</p>';
+      return;
+    }
+    function escapeHtml(str){if(str===null||str===undefined)return '';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+    function titleCase(s){if(!s)return '';return s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());}
+    function prettyName(name){if(!name)return 'Unknown';return titleCase(name).replace(/\bOf\b/g,'of');}
+    function prettyConsultant(name){
+      if(!name)return '';
+      // Strip credentials in parens and after first comma
+      let s = String(name).split('(')[0].trim();
+      s = s.split(/,\s*M\b|,\s*D\b|,\s*PhD|,\s*FRCS/i)[0].trim();
+      // Normalize Dr. prefix
+      if(/^Dr\.?\s/i.test(s)){
+        return s.replace(/^Dr\.?\s+/i,'Dr. ');
+      }
+      return 'Dr. ' + s;
+    }
+    function cohortOf(p){return (p.case_id||'').indexOf('cash_')===0?'cash':'insured';}
+    function selectPatient(){ /* no patient pane in standalone directory */ }
+
+    // ---- Directory: reference entities derived from the cohort (raw variants preserved) ----
+    function dirCoreKey(s){
+      return String(s).toLowerCase().replace(/\(.*?\)/g,' ').replace(/[.,;:/]/g,' ')
+        .replace(/&/g,' ')
+        .replace(/\b(the|co|company|ltd|limited|pvt|private|insurance|assurance|general|health|tpa|services|and|formerly|inc)\b/g,' ')
+        .replace(/\s+/g,' ').trim();
+    }
+    function dirRoomClass(s){
+      const t=String(s).toLowerCase();
+      if(t.includes('nicu'))return 'NICU (neonatal ICU)';
+      if(t.includes('picu'))return 'PICU (paediatric ICU)';
+      if(/\bicu\b/.test(t))return 'ICU';
+      if(t.includes('day care'))return 'Day care';
+      const ac=/a\/c|air[ -]?cond/.test(t)?' \u00b7 A/C':' \u00b7 non-A/C';
+      if(t.includes('twin'))return 'Twin sharing'+ac;
+      if(t.includes('single')||t.includes('private')||t.includes('executive')||t.includes('special')||t.includes('a/c'))return 'Single room'+ac;
+      if(t.includes('ward'))return 'Ward'+ac;
+      return 'Other';
+    }
+    function dirDeptClass(s){
+      const t=String(s).toLowerCase();
+      if(t.includes('neonat')||t.includes('nicu'))return 'Neonatology / NICU';
+      if(t.includes('paed')||t.includes('pediatr')||t.includes('picu'))return 'Paediatrics';
+      if(t.includes('obstet')||t.includes('gyn')||t.includes('mother'))return 'Obstetrics & Gynaecology';
+      if(t.includes('ent')||t.includes('otorhino'))return 'ENT';
+      if(t.includes('surg'))return 'Surgical';
+      if(t.includes('medic')||t.includes('internal'))return 'General Medicine';
+      return s;
+    }
+    function dirConsultantKey(s){
+      return String(s).toLowerCase().replace(/dr\.?/g,' ').replace(/\(.*?\)/g,' ').replace(/[.,;]/g,' ')
+        .replace(/\b(mbbs|md|ms|dch|dlo|dgo|dnb|do|dmch|pgpn|fcps|dco|regd|no)\b/g,' ').replace(/\d+/g,' ')
+        .replace(/\s+/g,' ').trim();
+    }
+    function dirFromAdmission(p,test){
+      const e=(p.timeline||[]).find(x=>x.event_type==='admission'); if(!e)return null;
+      const pl=e.payload||{};
+      for(const k in pl){const v=test(k,pl[k]); if(v)return v;}
+      return null;
+    }
+    function dirRoom(p){return dirFromAdmission(p,(k,v)=>(k.indexOf('room_category')===0&&k.indexOf('note')===-1&&typeof v==='string')?v:null);}
+    function dirDept(p){return dirFromAdmission(p,(k,v)=>(k==='department_raw_as_seen'&&typeof v==='string')?v:null);}
+    function dirTPA(p){
+      for(const e of (p.timeline||[])){const pl=e.payload||{};
+        if(typeof pl.tpa_raw_as_seen==='string')return pl.tpa_raw_as_seen;
+        if(typeof pl.tpa_target_raw_as_seen==='string')return pl.tpa_target_raw_as_seen;}
+      return null;
+    }
+    function dirGroup(items,keyFn,labelMode){
+      const map={};
+      for(const it of items){if(!it.raw)continue;const k=keyFn(it.raw)||it.raw;(map[k]=map[k]||[]).push(it);}
+      return Object.keys(map).map(key=>{
+        const grp=map[key],byRaw={};
+        grp.forEach(it=>{(byRaw[it.raw]=byRaw[it.raw]||[]).push(it.p);});
+        const variants=Object.keys(byRaw).map(raw=>({raw,patients:byRaw[raw]})).sort((a,b)=>b.patients.length-a.patients.length);
+        let label=(labelMode==='class')?key:variants.map(v=>v.raw.replace(/\s*\(.*$/,'').trim()).sort((a,b)=>a.length-b.length)[0];
+        const cases=new Set();grp.forEach(it=>cases.add(it.p.case_id));
+        return {label,patientCount:cases.size,variantCount:variants.length,variants};
+      }).sort((a,b)=>b.patientCount-a.patientCount||a.label.localeCompare(b.label));
+    }
+    function buildDirectory(){
+      const pick=fn=>PATIENTS.map(p=>({raw:fn(p),p})).filter(x=>x.raw);
+      const az=(a,b)=>a.label.localeCompare(b.label);
+      return [
+        {name:'Insurers',groups:dirGroup(pick(p=>cohortOf(p)==='cash'?null:p.payer),dirCoreKey,'org').sort(az)},
+        {name:'TPAs',groups:dirGroup(pick(dirTPA),dirCoreKey,'org').sort(az)},
+        {name:'Rooms',groups:dirGroup(pick(dirRoom),dirRoomClass,'class').sort(az)},
+        {name:'Departments',groups:dirGroup(pick(dirDept),dirDeptClass,'class').sort(az)},
+        {name:'Consultants',groups:dirGroup(pick(p=>p.consultant),dirConsultantKey,'name').sort(az)},
+        {name:'Staff',staff:true,groups:[]}
+      ];
+    }
+    let DIRECTORY=null,dirActiveTab=0;
+    function renderDirectory(){
+      if(!DIRECTORY)DIRECTORY=buildDirectory();
+      document.getElementById('dir-tabs').innerHTML=DIRECTORY.map((t,i)=>
+        `<button class="dir-tab ${i===dirActiveTab?'active':''}" data-tab="${i}">${escapeHtml(t.name)}<span class="ct">${t.staff?((window.NEWCO_STAFF&&window.NEWCO_STAFF.length)||0):t.groups.length}</span></button>`).join('');
+      const tab=DIRECTORY[dirActiveTab];
+      if(tab.staff){document.getElementById('dir-body').innerHTML=(window.renderStaffGrid?window.renderStaffGrid():'');return;}
+      document.getElementById('dir-body').innerHTML=tab.groups.map((g,gi)=>{
+        const drift=g.variantCount>1?`<span class="dir-badge drift">${g.variantCount} spellings</span>`:'';
+        const variants=g.variants.map(v=>{
+          const names=v.patients.map(p=>`<b data-cid="${escapeHtml(p.case_id)}">${escapeHtml(prettyName(p.display_name))}</b>`).join(', ');
+          return `<div class="dir-variant"><div class="dir-variant-raw">${escapeHtml(v.raw)}</div><div class="dir-variant-pts">${names}</div></div>`;
+        }).join('');
+        return `<div class="dir-entry" data-g="${gi}">
+            <div class="dir-entry-head" data-toggle="1">
+              <span class="dir-label">${escapeHtml(g.label)}</span>${drift}
+              <span class="dir-badge">${g.patientCount} patient${g.patientCount===1?'':'s'}</span>${(DIRECTORY[dirActiveTab].name==='TPAs'&&g.variants.some(v=>/medi\s*assist/i.test(v.raw)))?'<button class="dir-tariff-btn" data-tariff="1" type="button">Tariffs</button>':''}
+              <span class="dir-chev">\u203a</span>
+            </div>
+            <div class="dir-detail">${variants}</div>
+          </div>`;
+      }).join('')||'<div style="color:var(--ink-mute);font-style:italic;font-size:13px;">No entries.</div>';
+    }
+    function openDirectory(){renderDirectory();document.getElementById('dir-overlay').hidden=false;}
+    function closeDirectory(){document.getElementById('dir-overlay').hidden=true;}
+
+    function init(){
+      openDirectory();
+      document.getElementById('dir-close').addEventListener('click',function(){ history.length>1?history.back():window.close(); });
+      document.getElementById('dir-overlay').addEventListener('click',function(e){
+        if(e.target.id==='dir-overlay'){ history.length>1?history.back():window.close(); return; }
+        const tab=e.target.closest('.dir-tab');if(tab){dirActiveTab=+tab.dataset.tab;renderDirectory();return;}
+        const nm=e.target.closest('.dir-variant-pts b');if(nm){return;}
+        const tbtn=e.target.closest('.dir-tariff-btn');if(tbtn){e.stopPropagation();openTariff();return;}
+        const head=e.target.closest('.dir-entry-head');if(head){head.parentNode.classList.toggle('open');return;}
+      });
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  })();
+  </script>
+
+  <script>
+  (function(){
+    function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    window.renderStaffGrid=function(){
+      var s=window.NEWCO_STAFF||[];
+      if(!s.length) return '<div style="color:var(--ink-mute);font-style:italic;font-size:13px;">Staff cards not loaded &mdash; ensure the Jyothi_Staff folder sits beside this file.</div>';
+      return '<div class="staff-grid">'+s.map(function(p){ return '<figure class="staff-card"><img loading="lazy" src="'+esc(p.img)+'" alt="'+esc(p.name+(p.role?(" \u2014 "+p.role):""))+'"></figure>'; }).join('')+'</div>';
+    };
+    var COLCFG={
+      room:{table:'room',group:'section',search:['item','remarks'],
+        select:'id,section,item,rate_inr,remarks,truncated',grid:'40px 1.2fr 88px 1.5fr',
+        cols:[{k:'id',cls:'tid',label:'#'},{k:'item',cls:'tdesc',label:'Room / charge',hl:true},{k:'rate_inr',cls:'trate rup',label:'Rate',num:true},{k:'remarks',cls:'trem',label:'Remarks'}]},
+      packages:{table:'packages',group:'department',search:['procedure','department'],
+        select:'id,department,procedure,los,inclusions,exclusions,rate_general,rate_sharing,rate_private,truncated',grid:'38px 1fr 40px 70px 52px 62px 62px 62px',
+        cols:[{k:'id',cls:'tid',label:'#'},{k:'procedure',cls:'tdesc',label:'Procedure / surgery',hl:true,trunc:'truncated'},
+              {k:'los',cls:'tcode',label:'LOS'},{k:'inclusions',cls:'tincl',label:'Incl'},{k:'exclusions',cls:'tincl',label:'Excl'},
+              {k:'rate_general',cls:'trate rup',label:'General',num:true},{k:'rate_sharing',cls:'trate rup',label:'Sharing',num:true},{k:'rate_private',cls:'trate rup',label:'Private',num:true}]},
+      investigation:{table:'investigation',group:'category',search:['description','category'],
+        select:'id,category,description,rate_inr,truncated',grid:'48px 1fr 92px',
+        cols:[{k:'id',cls:'tid',label:'#'},{k:'description',cls:'tdesc',label:'Test / investigation',hl:true,trunc:'truncated'},{k:'rate_inr',cls:'trate rup',label:'Rate',num:true}]},
+      procedures:{table:'procedures',group:'department',search:['procedure','code','department'],
+        select:'id,code,department,procedure,inclusions,exclusions,rate_general,rate_sharing,rate_private,truncated',grid:'82px 1fr 74px 56px 68px 68px 68px',
+        cols:[{k:'code',cls:'tcode',label:'Code'},{k:'procedure',cls:'tdesc',label:'Procedure / surgery',hl:true,trunc:'truncated'},
+              {k:'inclusions',cls:'tincl',label:'Incl'},{k:'exclusions',cls:'tincl',label:'Excl'},
+              {k:'rate_general',cls:'trate rup',label:'General',num:true},{k:'rate_sharing',cls:'trate rup',label:'Sharing',num:true},{k:'rate_private',cls:'trate rup',label:'Private',num:true}]},
+      equipment:{table:'equipment',group:null,search:['item'],
+        select:'id,item,rate_inr,truncated',grid:'48px 1fr 120px',
+        cols:[{k:'id',cls:'tid',label:'#'},{k:'item',cls:'tdesc',label:'Equipment',hl:true},{k:'rate_inr',cls:'trate rup',label:'Rate',num:true}]},
+      professional:{table:'professional',group:null,search:['item','remarks'],
+        select:'id,item,rate_inr,remarks,truncated',grid:'48px 1fr 90px 120px',
+        cols:[{k:'id',cls:'tid',label:'#'},{k:'item',cls:'tdesc',label:'Service',hl:true},{k:'rate_inr',cls:'trate rup',label:'Rate',num:true},{k:'remarks',cls:'trem',label:'Remarks'}]}
+    };
+    var TABS=[
+      {id:'packages',label:'Packages',live:true},
+      {id:'investigation',label:'Investigation',live:true},
+      {id:'procedures',label:'Frequent Procedures',live:true},
+      {id:'room',label:'Jyothi Rooms',live:true},
+      {id:'equipment',label:'Equipment Charges',live:true},
+      {id:'professional',label:'Professional Charges',live:true},
+      {id:'jyoti',label:'JYOTI (general)',live:false}
+    ];
+    var active=1, SQLREADY=null, DBS={}, TOTAL={}, LEGEND={};
+    function ensureSql(){ if(!SQLREADY){ if(typeof initSqlJs!=='function') return Promise.reject(new Error('sql-asm.js not loaded')); SQLREADY=initSqlJs().then(function(SQL){window.__SQL=SQL;}); } return SQLREADY; }
+    function b64bytes(b){ var bin=atob(b),u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return u; }
+    function openDB(id){ if(DBS[id])return Promise.resolve(DBS[id]); return ensureSql().then(function(){ var b=window.NEWCO_DB&&window.NEWCO_DB[id]; if(!b)throw new Error(id+'.db.js not loaded beside this file'); var db=new window.__SQL.Database(b64bytes(b)); DBS[id]=db; TOTAL[id]=db.exec('SELECT COUNT(*) FROM '+id)[0].values[0][0]; LEGEND[id]=buildLegend(db); return db; }); }
+    function buildLegend(db){
+      var incl=[],terms=[],notes=[]; var st=db.prepare("SELECT k,v FROM _meta WHERE k LIKE 'incl_%' OR k LIKE 'term_%' OR k LIKE 'note_%' ORDER BY k");
+      while(st.step()){var o=st.getAsObject(); var bk=(o.k.indexOf('incl_')===0?incl:(o.k.indexOf('note_')===0?notes:terms)); bk.push(o);} st.free();
+      if(!incl.length && !terms.length && !notes.length) return null;
+      var h='<div class="leg-title"><b>Notes &amp; codes</b><button class="leg-x" id="tar-legend-x" type="button" aria-label="Close">&times;</button></div>';
+      if(notes.length){ h+='<div class="leg-h">Hospital notes</div>'; notes.forEach(function(r){ h+='<div class="leg-term">'+esc(r.v)+'</div>'; }); }
+      if(incl.length){ h+='<div class="leg-h">Inclusion / exclusion codes</div>'; incl.forEach(function(r){ h+='<div class="leg-row"><b>'+esc(r.k.replace('incl_',''))+'</b>'+esc(r.v)+'</div>'; }); }
+      if(terms.length){ h+='<div class="leg-h">Package terms</div>'; terms.forEach(function(r){ h+='<div class="leg-term">'+esc(r.v)+'</div>'; }); }
+      return h;
+    }
+    function renderTabs(){ document.getElementById('tar-tabs').innerHTML=TABS.map(function(t,i){ return '<button class="tar-tab '+(i===active?'active':'')+' '+(t.live?'live':'dim')+'" data-i="'+i+'">'+esc(t.label)+'</button>'; }).join(''); }
+    function hl(text,q){ text=esc(text); if(!q)return text; try{ var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return text.replace(re,'<mark>$1</mark>'); }catch(e){return text;} }
+    function runQuery(db,id,q){
+      var cfg=COLCFG[id]; q=(q||'').trim();
+      var where='',params=[];
+      if(q.length>=2){ where=' WHERE '+cfg.search.map(function(c){return c+" LIKE ?1 COLLATE NOCASE";}).join(' OR '); params=['%'+q+'%']; }
+      var sql='SELECT '+cfg.select+' FROM '+cfg.table+where+' ORDER BY '+(cfg.group?cfg.group+', id':'id');
+      var st=db.prepare(sql); if(params.length)st.bind(params);
+      var rows=[]; while(st.step())rows.push(st.getAsObject()); st.free();
+      var counts={}; if(cfg.group) rows.forEach(function(r){counts[r[cfg.group]]=(counts[r[cfg.group]]||0)+1;});
+      var html='',cur=null;
+      rows.forEach(function(r){
+        if(cfg.group){ var g=r[cfg.group]; if(g!==cur){cur=g; html+='<div class="tar-cat">'+esc(g)+'<span class="cc">'+counts[g]+'</span></div>';} }
+        var cells=cfg.cols.map(function(co){
+          var v=r[co.k];
+          if(co.num) return '<div class="'+co.cls+'">'+(v==null?'&mdash;':v)+'</div>';
+          var inner=co.hl?hl(v==null?'':String(v),q):esc(v==null?'':String(v));
+          if(co.trunc&&r[co.trunc]) inner+='<span class="trunc" title="Clipped in source PDF">clipped</span>';
+          return '<div class="'+(co.cls||'')+'">'+inner+'</div>';
+        }).join('');
+        html+='<div class="tar-trow" style="grid-template-columns:'+cfg.grid+'">'+cells+'</div>';
+      });
+      if(!rows.length) html='<div class="tar-placeholder">No rows match &ldquo;'+esc(q)+'&rdquo;.</div>';
+      document.getElementById('tar-table').innerHTML=html;
+      document.getElementById('tar-db-meta').textContent=rows.length+' of '+TOTAL[id]+' rows';
+      var th=document.getElementById('tar-thead'); th.hidden=false; th.style.gridTemplateColumns=cfg.grid;
+      th.innerHTML=cfg.cols.map(function(co){return '<div class="'+(co.num?'trate':'')+'">'+esc(co.label)+'</div>';}).join('');
+    }
+    function hideLegend(){ document.getElementById('tar-legend').hidden=true; }
+    function showTab(i){
+      active=i; renderTabs(); hideLegend();
+      var t=TABS[i], bar=document.getElementById('tar-db-bar'), th=document.getElementById('tar-thead'), wrap=document.getElementById('tar-table'), pill=document.getElementById('tar-legend-pill');
+      if(!t.live){ bar.hidden=true; th.hidden=true; pill.hidden=true; wrap.innerHTML='<div class="tar-placeholder">'+esc(t.label)+' has not been converted to a DB table yet.<br>Same pipeline applies &mdash; PDF &rarr; a <b>'+esc(t.id)+'.db</b> SQLite file in <b>MediAssist_Tariff/</b>, loaded via <b>'+esc(t.id)+'.db.js</b> and queried live.</div>'; return; }
+      bar.hidden=false; wrap.innerHTML='<div class="tar-loading">Loading '+esc(t.id)+'.db &hellip;</div>';
+      openDB(t.id).then(function(db){
+        var leg=LEGEND[t.id]; pill.hidden=!leg;
+        if(leg) document.getElementById('tar-legend').innerHTML=leg;
+        runQuery(db,t.id,document.getElementById('tar-db-search').value);
+      }).catch(function(e){ th.hidden=true; pill.hidden=true; wrap.innerHTML='<div class="tar-placeholder">Could not open <b>'+esc(t.id)+'.db</b>: '+esc(e.message)+'.<br>Ensure <b>MediAssist_Tariff/sql-asm.js</b> and <b>MediAssist_Tariff/'+esc(t.id)+'.db.js</b> exist.</div>'; });
+    }
+    window.openTariff=function(){ document.getElementById('tar-overlay').hidden=false; showTab(active); setTimeout(function(){var s=document.getElementById('tar-db-search'); if(!document.getElementById('tar-db-bar').hidden)s.focus();},60); };
+    function closeTariff(){ document.getElementById('tar-overlay').hidden=true; }
+    document.getElementById('tar-close').addEventListener('click',closeTariff);
+    document.getElementById('tar-overlay').addEventListener('click',function(e){ if(e.target.id==='tar-overlay')closeTariff(); });
+    document.getElementById('tar-tabs').addEventListener('click',function(e){ var t=e.target.closest('.tar-tab'); if(t)showTab(+t.dataset.i); });
+    document.getElementById('tar-legend-pill').addEventListener('click',function(){ var L=document.getElementById('tar-legend'); L.hidden=!L.hidden; });
+    document.getElementById('tar-legend').addEventListener('click',function(e){ if(e.target.id==='tar-legend-x')hideLegend(); });
+    var si; document.getElementById('tar-db-search').addEventListener('input',function(e){ clearTimeout(si); var v=e.target.value; si=setTimeout(function(){ var t=TABS[active]; if(t.live&&DBS[t.id])runQuery(DBS[t.id],t.id,v); },160); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var L=document.getElementById('tar-legend'), ov=document.getElementById('tar-overlay'); if(L&&!L.hidden){e.stopImmediatePropagation();hideLegend();return;} if(ov&&!ov.hidden){ e.stopImmediatePropagation(); closeTariff(); } } },true);
+    renderTabs();
+  })();
+  </script>
+</body>
+</html>
