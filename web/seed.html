@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewCo — Seed</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>NewCo - India Healthcare</h1>
+    <p><a href="index.html" style="color:#a9b4cc;">&larr; Back</a></p>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h2>Seed profiles</h2>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;">
+        Admin only. Creates any missing member profiles with placeholder emails.
+        Existing profiles are left untouched.
+      </p>
+      <button class="auth-btn" id="seed-btn" type="button">Seed now</button>
+      <div class="auth-msg" id="seed-msg" role="status"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const ADMIN = "admin@newco-ihc.dev";
+    const msg = document.getElementById("seed-msg");
+
+    const PROFILES = [
+      { slug: "jiten-sarathy",      name: "Jiten Sarathy",      email: "jiten@newco-ihc.dev" },
+      { slug: "krishna-kottapalli", name: "Krishna Kottapalli", email: "krishna@newco-ihc.dev" },
+      { slug: "ramesh-viswanatham", name: "Ramesh Viswanatham", email: "ramesh@newco-ihc.dev" },
+      { slug: "vikram-vijay",       name: "Vikram Vijay",       email: "vikram@newco-ihc.dev" },
+      { slug: "aditya-poosarla",    name: "Aditya Poosarla",    email: "aditya@newco-ihc.dev" },
+      { slug: "sathya-garimela",    name: "Sathya Garimela",    email: "sathya@newco-ihc.dev" },
+      { slug: "jyothsna-diaz",      name: "Jyothsna Diaz",      email: "jyothsna@newco-ihc.dev" },
+      { slug: "sowmya-kottapalli",  name: "Sowmya Kottapalli",  email: "sowmya@newco-ihc.dev" },
+    ];
+
+    const HOSPITALS = [
+      { id: "jyothi",     name: "Jyothi Hospital", address: "Three Lamps Junction \u00b7 Vizianagaram", rohini: "8900080181694", contactName: "K. Chandra Sekhar", phone: "", email: "" },
+      { id: "maasharada", name: "MaaSharada",      address: "", rohini: "", contactName: "", phone: "", email: "" },
+      { id: "samarpan",   name: "Samarpan",        address: "Near Bus Stand, Aarogya Nagar \u00b7 Omerga, Maharashtra 413606", rohini: "", contactName: "Dr. Nachiket Inamdar", phone: "", email: "" },
+      { id: "surya",      name: "Surya Hospital",  address: "Krishnanagar, Maranipeta \u00b7 Collector Office Jn. \u00b7 Visakhapatnam 530 002", rohini: "", contactName: "", phone: "", email: "" },
+      { id: "swaasthya",  name: "Swaasthya",       address: "Nakkaladdini, Kumarapuram \u00b7 Madanapally, Andhra Pradesh 517325", rohini: "", contactName: "Venky Natarajan", phone: "", email: "" },
+    ];
+
+    let isAdmin = false;
+    onAuthStateChanged(auth, u => {
+      if (!u) { location.replace("login.html"); return; }
+      document.body.classList.add("authed");
+      isAdmin = (u.email === ADMIN);
+      if (!isAdmin) msg.textContent = "You must be signed in as admin to seed.";
+    });
+
+    document.getElementById("seed-btn").addEventListener("click", async () => {
+      if (!isAdmin) { msg.className = "auth-msg err"; msg.textContent = "Admin only."; return; }
+      msg.className = "auth-msg"; msg.textContent = "Seeding\u2026";
+      let created = 0, skipped = 0;
+      for (const p of PROFILES) {
+        try {
+          const ref = doc(db, "profiles", p.slug);
+          const snap = await getDoc(ref);
+          if (snap.exists()) { skipped++; continue; }
+          await setDoc(ref, { name: p.name, email: p.email, phone: "", uid: null });
+          created++;
+        } catch (e) {
+          msg.className = "auth-msg err";
+          msg.textContent = "Error on " + p.slug + ": " + (e.code || e.message);
+          return;
+        }
+      }
+      let hCreated = 0, hSkipped = 0;
+      for (const h of HOSPITALS) {
+        try {
+          const ref = doc(db, "hospitals", h.id);
+          const snap = await getDoc(ref);
+          if (snap.exists()) { hSkipped++; continue; }
+          await setDoc(ref, {
+            name: h.name, address: h.address, rohini: h.rohini,
+            contactName: h.contactName, phone: h.phone, email: h.email
+          });
+          hCreated++;
+        } catch (e) {
+          msg.className = "auth-msg err";
+          msg.textContent = "Hospital error on " + h.id + ": " + (e.code || e.message);
+          return;
+        }
+      }
+      msg.className = "auth-msg ok";
+      msg.textContent = `Profiles: created ${created}, kept ${skipped}. Hospitals: created ${hCreated}, kept ${hSkipped}.`;
+    });
+  </script>
+</body>
+</html>

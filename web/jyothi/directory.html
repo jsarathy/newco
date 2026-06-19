@@ -291,7 +291,7 @@
     .dir-overlay{position:fixed;}
   </style>
 </head>
-<body>
+<body class="gated">
   </header>
   <div class="dir-overlay" id="dir-overlay" hidden>
     <div class="dir-modal" role="dialog" aria-label="Directory">
@@ -582,6 +582,15 @@
     document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var L=document.getElementById('tar-legend'), ov=document.getElementById('tar-overlay'); if(L&&!L.hidden){e.stopImmediatePropagation();hideLegend();return;} if(ov&&!ov.hidden){ e.stopImmediatePropagation(); closeTariff(); } } },true);
     renderTabs();
   })();
+  </script>
+
+  <script type="module">
+    import { auth } from "../firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    onAuthStateChanged(auth, u => {
+      if (!u) { location.replace("../login.html"); return; }
+      document.body.classList.add("authed");
+    });
   </script>
 </body>
 </html>

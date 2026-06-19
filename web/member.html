@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewCo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="gated">
+  <header>
+    <h1>NewCo - India Healthcare</h1>
+    <p><a href="index.html" style="color:#a9b4cc;">&larr; Back</a></p>
+    <div class="header-account">
+      <span id="userbanner" class="userbanner"></span>
+      <button id="signout" class="signout-btn" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <aside id="member-side"></aside>
+    <section id="content">
+      <h2 id="member-name"></h2>
+      <div id="member-role" class="role"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const ADMIN = "admin@newco-ihc.dev";
+    const slug = new URLSearchParams(location.search).get("id") || "";
+
+    // local fallbacks if the profile doc doesn't exist yet
+    const FALLBACK = {
+      "jiten-sarathy":"Jiten Sarathy","krishna-kottapalli":"Krishna Kottapalli",
+      "ramesh-viswanatham":"Ramesh Viswanatham","vikram-vijay":"Vikram Vijay",
+      "aditya-poosarla":"Aditya Poosarla","sathya-garimela":"Sathya Garimela",
+      "jyothsna-diaz":"Jyothsna Diaz","sowmya-kottapalli":"Sowmya Kottapalli",
+    };
+
+    const esc = s => String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+    const side = document.getElementById("member-side");
+    const nameH = document.getElementById("member-name");
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) { location.replace("login.html"); return; }
+      document.body.classList.add("authed");
+
+      const so = document.getElementById("signout");
+      if (so) so.addEventListener("click", () => signOut(auth).then(() => location.replace("login.html")));
+
+      // header banner = signed-in user's own name
+      try {
+        // not critical; banner falls back to email
+      } catch (e) {}
+
+      const ref = doc(db, "profiles", slug);
+      let data = { name: FALLBACK[slug] || slug, email: "", phone: "", uid: null };
+      let exists = false;
+      try {
+        const snap = await getDoc(ref);
+        if (snap.exists()) { data = snap.data(); exists = true; }
+      } catch (e) {}
+
+      // set header banner from the viewer's own email (simple + reliable)
+      const b = document.getElementById("userbanner");
+      if (b) b.textContent = user.email;
+
+      const isAdmin = user.email === ADMIN;
+      const claimed = !!data.uid;
+      const isOwner = claimed ? data.uid === user.uid : (data.email && data.email === user.email);
+      const canEdit = isAdmin || isOwner;
+
+      nameH.textContent = data.name || (FALLBACK[slug] || slug);
+
+      render(data, canEdit);
+
+      function render(d, editable) {
+        if (!editable) {
+          side.innerHTML = `
+            <div class="member-name">${esc(d.name)}</div>
+            <div class="side-section">
+              <div class="side-section-title">Account</div>
+              <div class="member-field"><span class="member-field-label">Phone</span><span class="member-field-value">${esc(d.phone) || "\u2014"}</span></div>
+              <div class="member-field"><span class="member-field-label">Email</span><span class="member-field-value">${esc(d.email) || "\u2014"}</span></div>
+            </div>`;
+          return;
+        }
+        side.innerHTML = `
+          <div class="member-name">${esc(d.name)}</div>
+          <div class="side-section">
+            <div class="side-section-title">Account ${isAdmin && !isOwner ? "(admin edit)" : ""}</div>
+            <div class="member-field"><span class="member-field-label">Name</span>
+              <input class="member-input" id="f-name" type="text" value="${esc(d.name)}"></div>
+            <div class="member-field"><span class="member-field-label">Phone</span>
+              <input class="member-input" id="f-phone" type="text" value="${esc(d.phone)}"></div>
+            <div class="member-field"><span class="member-field-label">Email</span>
+              <input class="member-input" id="f-email" type="email" value="${esc(d.email)}"></div>
+            <button class="auth-btn" id="f-save" type="button">Save</button>
+            <div class="member-save-msg" id="f-msg"></div>
+          </div>`;
+        document.getElementById("f-save").addEventListener("click", save);
+      }
+
+      async function save() {
+        const m = document.getElementById("f-msg");
+        const payload = {
+          name:  document.getElementById("f-name").value.trim(),
+          phone: document.getElementById("f-phone").value.trim(),
+          email: document.getElementById("f-email").value.trim(),
+        };
+        // owner claiming for the first time must set their uid
+        if (isOwner && !claimed) payload.uid = user.uid;
+        m.textContent = "Saving\u2026"; m.className = "member-save-msg";
+        try {
+          if (exists) await updateDoc(ref, payload);
+          else        await setDoc(ref, Object.assign({ uid: isOwner ? user.uid : null }, payload));
+          m.className = "member-save-msg ok"; m.textContent = "Saved.";
+          nameH.textContent = payload.name;
+          document.querySelector(".member-name").textContent = payload.name;
+        } catch (e) {
+          m.className = "member-save-msg err";
+          m.textContent = "Could not save: " + (e.code || e.message);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

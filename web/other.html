@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewCo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="gated">
+  <header>
+    <h1>NewCo - India Healthcare</h1>
+    <p><a href="index.html" style="color:#a9b4cc;">&larr; Back</a></p>
+    <div class="header-account">
+      <span id="userbanner" class="userbanner"></span>
+      <button id="signout" class="signout-btn" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="content">
+      <h2 id="other-name"></h2>
+    </section>
+  </main>
+
+  <script>
+    const id = new URLSearchParams(location.search).get("id");
+    const names = { isprit: "iSPRIT", abdm: "ABDM", ohum: "Ohum" };
+    document.getElementById("other-name").textContent = names[id] || (id || "");
+  </script>
+
+  <script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    onAuthStateChanged(auth, async u => {
+      if (!u) { location.replace("login.html"); return; }
+      document.body.classList.add("authed");
+      let name = u.email;
+      try { const s = await getDoc(doc(db, "profiles", u.email)); if (s.exists() && s.data().name) name = s.data().name; } catch (e) {}
+      const b = document.getElementById("userbanner"); if (b) b.textContent = name;
+      const so = document.getElementById("signout");
+      if (so) so.addEventListener("click", () => signOut(auth).then(() => location.replace("login.html")));
+    });
+  </script>
+</body>
+</html>
