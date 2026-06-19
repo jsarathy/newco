@@ -2,17 +2,23 @@
 
 const teamRows = [
   [
-    { name: "Jiten Sarathy", role: "" },
-    { name: "Krishna Kottapalli", role: "" },
-    { name: "Ramesh Viswanatham", role: "" },
-    { name: "Vikram Vijay", role: "" },
-    { name: "Aditya Poosarla", role: "" },
+    { id: "jiten-sarathy", name: "Jiten Sarathy", role: "" },
+    { id: "krishna-kottapalli", name: "Krishna Kottapalli", role: "" },
+    { id: "ramesh-viswanatham", name: "Ramesh Viswanatham", role: "" },
+    { id: "vikram-vijay", name: "Vikram Vijay", role: "" },
+    { id: "aditya-poosarla", name: "Aditya Poosarla", role: "" },
   ],
   [
-    { name: "Sathya Garimela", role: "" },
-    { name: "Jyothsna Diaz", role: "" },
-    { name: "Sowmya Kottapalli", role: "" },
+    { id: "sathya-garimela", name: "Sathya Garimela", role: "" },
+    { id: "jyothsna-diaz", name: "Jyothsna Diaz", role: "" },
+    { id: "sowmya-kottapalli", name: "Sowmya Kottapalli", role: "" },
   ],
+];
+
+const others = [
+  { id: "isprit", name: "iSPRIT" },
+  { id: "abdm",   name: "ABDM" },
+  { id: "ohum",   name: "Ohum" },
 ];
 
 const hospitals = [
@@ -35,11 +41,14 @@ teamRows.forEach(row => {
     .sort((a, b) => lastName(a.name).localeCompare(lastName(b.name)))
     .forEach(member => {
       const card = document.createElement("div");
-      card.className = "team-card";
+      card.className = "team-card clickable";
       card.innerHTML = `
         <div class="name">${member.name}</div>
         <div class="role">${member.role}</div>
       `;
+      card.addEventListener("click", () => {
+        window.location.href = `member.html?id=${member.id}`;
+      });
       rowEl.appendChild(card);
     });
   teamEl.appendChild(rowEl);
@@ -48,7 +57,7 @@ teamRows.forEach(row => {
 // --- Render hospital list ---
 
 const listEl = document.getElementById("hospital-list");
-hospitals.forEach(h => {
+[...hospitals].sort((a, b) => a.name.localeCompare(b.name)).forEach(h => {
   const li = document.createElement("li");
   li.textContent = h.name;
   li.addEventListener("click", () => {
@@ -56,6 +65,20 @@ hospitals.forEach(h => {
   });
   listEl.appendChild(li);
 });
+
+// --- Render others list ---
+
+const othersEl = document.getElementById("others-list");
+if (othersEl) {
+  others.forEach(o => {
+    const li = document.createElement("li");
+    li.textContent = o.name;
+    li.addEventListener("click", () => {
+      window.location.href = `other.html?id=${o.id}`;
+    });
+    othersEl.appendChild(li);
+  });
+}
 
 // ===================== Calendar =====================
 (function () {

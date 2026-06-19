@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewCo — Sign in</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>NewCo - India Healthcare</h1>
+    <p>Revenue cycle analytics for hospitals</p>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h2>Sign in</h2>
+
+      <label class="auth-label" for="auth-email">Email</label>
+      <input class="auth-input" id="auth-email" type="email" autocomplete="username" placeholder="you@example.com">
+
+      <label class="auth-label" for="auth-password">Password</label>
+      <input class="auth-input" id="auth-password" type="password" autocomplete="current-password" placeholder="Your password">
+
+      <button class="auth-btn" id="auth-signin" type="button">Sign in</button>
+
+      <button class="auth-link" id="auth-setpw" type="button">
+        First time, or forgot your password? Email me a setup link
+      </button>
+
+      <div class="auth-msg" id="auth-msg" role="status"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth } from "./firebase-init.js";
+    import {
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail,
+      onAuthStateChanged,
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const emailEl = document.getElementById("auth-email");
+    const pwEl    = document.getElementById("auth-password");
+    const msgEl   = document.getElementById("auth-msg");
+
+    function setMsg(text, kind) {
+      msgEl.textContent = text;
+      msgEl.className = "auth-msg" + (kind ? " " + kind : "");
+    }
+
+    // already signed in -> go to the app
+    onAuthStateChanged(auth, user => {
+      if (user) window.location.href = "index.html";
+    });
+
+    document.getElementById("auth-signin").addEventListener("click", async () => {
+      const email = emailEl.value.trim();
+      const pw = pwEl.value;
+      if (!email || !pw) { setMsg("Enter your email and password.", "err"); return; }
+      setMsg("Signing in\u2026");
+      try {
+        await signInWithEmailAndPassword(auth, email, pw);
+        window.location.href = "index.html";
+      } catch (e) {
+        setMsg(friendly(e.code), "err");
+      }
+    });
+
+    document.getElementById("auth-setpw").addEventListener("click", async () => {
+      const email = emailEl.value.trim();
+      if (!email) { setMsg("Enter your email above first, then click this.", "err"); return; }
+      setMsg("Sending\u2026");
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setMsg("Check your inbox \u2014 we sent a link to set your password.", "ok");
+      } catch (e) {
+        setMsg(friendly(e.code), "err");
+      }
+    });
+
+    // allow Enter to submit
+    pwEl.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("auth-signin").click(); });
+
+    function friendly(code) {
+      switch (code) {
+        case "auth/invalid-email":        return "That email address looks invalid.";
+        case "auth/user-not-found":       return "No account for that email yet \u2014 use the setup link below.";
+        case "auth/wrong-password":
+        case "auth/invalid-credential":   return "Email or password is incorrect.";
+        case "auth/too-many-requests":    return "Too many attempts. Wait a moment and try again.";
+        case "auth/missing-password":     return "Enter your password.";
+        default:                          return "Something went wrong. Try again.";
+      }
+    }
+  </script>
+</body>
+</html>
