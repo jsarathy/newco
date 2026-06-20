@@ -503,13 +503,16 @@
   <script type="module">
     // ---- Milestone roadmap (below the Directory pill) ----
     // Configurable window: TL_YEARS years starting TL_START_ISO (currently 3 yrs
-    // from Mar 2026). Events persist per-hospital in localStorage; the {date,text,pos}
-    // shape is Firestore-ready for a later shared-roadmap migration.
+    // from Mar 2026). Events are shared across users: stored in the hospital's
+    // Firestore doc under the `roadmap` field, live-updated via onSnapshot.
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     const TL_START_ISO = "2026-03-01";
     const TL_YEARS = 3;
 
     const id = new URLSearchParams(location.search).get("id") || "_";
-    const STORE_KEY = "newco_roadmap_" + id;
+    const ref = doc(db, "hospitals", id);
 
     const z = n => String(n).padStart(2, "0");
     const toISO = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
@@ -524,9 +527,10 @@
     const pct = ms => Math.max(0, Math.min(100, (ms - START_MS) / SPAN * 100));
 
     let events = [];
-    try { events = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (e) {}
-    if (!Array.isArray(events)) events = [];
-    const persist = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(events)); } catch (e) {} };
+    const persist = async () => {
+      try { await setDoc(ref, { roadmap: events }, { merge: true }); }
+      catch (e) { console.error("Roadmap save failed:", e.code || e.message); }
+    };
 
     const track = document.getElementById("tl-track");
 
@@ -638,31 +642,45 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeEditor(); });
 
     render();
+    onAuthStateChanged(auth, user => {
+      if (!user) return;
+      onSnapshot(ref, snap => {
+        const d = snap.exists() ? snap.data() : {};
+        events = Array.isArray(d.roadmap) ? d.roadmap : [];
+        render();
+      });
+    });
   </script>
 
   <script type="module">
     // ---- Editable hospital profile box (section 1) ----
-    // Attributes persist per-hospital in localStorage; the {label,value}[] shape
-    // is Firestore-ready for a later shared-profile migration.
+    // Attributes are shared across users: stored in the hospital's Firestore doc
+    // under the `profile` field, live-updated via onSnapshot.
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
     const id = new URLSearchParams(location.search).get("id") || "_";
-    const KEY = "newco_profile_" + id;
+    const ref = doc(db, "hospitals", id);
     const DEFAULT = Array.from({ length: 8 }, (_, i) => ({ label: "Attribute " + (i + 1), value: "" }));
     const esc = s => String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-    function load() {
-      let s = null;
-      try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
-      return (Array.isArray(s) && s.length) ? s : DEFAULT.map(r => ({ ...r }));
-    }
-    let rows = load();
-    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch (e) {} };
+    const clone = a => a.map(r => ({ ...r }));
+    let serverRows = clone(DEFAULT);
+    let rows = clone(DEFAULT);
+    let editing = false;
+    const persist = async () => {
+      try { await setDoc(ref, { profile: rows }, { merge: true }); }
+      catch (e) { console.error("Profile save failed:", e.code || e.message); }
+    };
 
     const box = document.getElementById("info-body");
     const editBtn = document.getElementById("info-edit");
     editBtn.addEventListener("click", renderEdit);
 
     function renderView() {
+      editing = false;
       const shown = rows.filter(r => r.value);   // only attributes that have a value
       box.innerHTML = shown.length
         ? `<dl class="info-list">${shown.map(r =>
@@ -680,6 +698,7 @@
     }
 
     function renderEdit() {
+      editing = true;
       editBtn.hidden = true;
       const list = rows.map((r, i) =>
         `<div class="info-edit-row" data-i="${i}">
@@ -702,28 +721,37 @@
         if (!rows.length) rows.push({ label: "", value: "" });
         renderEdit();
       }));
-      box.querySelector("#info-cancel").addEventListener("click", () => { rows = load(); renderView(); });
+      box.querySelector("#info-cancel").addEventListener("click", () => { rows = clone(serverRows); renderView(); });
       box.querySelector("#info-save").addEventListener("click", () => { collect(); persist(); renderView(); });
     }
 
     renderView();
+    onAuthStateChanged(auth, user => {
+      if (!user) return;
+      onSnapshot(ref, snap => {
+        const d = snap.exists() ? snap.data() : {};
+        serverRows = (Array.isArray(d.profile) && d.profile.length) ? d.profile : clone(DEFAULT);
+        if (!editing) { rows = clone(serverRows); renderView(); }
+      });
+    });
   </script>
 
   <script type="module">
     // ---- Notes box (below the timeline) ----
-    // Per-hospital notes persisted to localStorage. Each saved note records the
-    // signed-in user (read from the header banner) and the timestamp shown in the
-    // form. The search button filters the saved notes by text/link/author.
+    // Notes are shared across users: stored in the hospital's Firestore doc under
+    // the `notes` field (appended atomically with arrayUnion), live-updated via
+    // onSnapshot. Each note records the signed-in user and the form timestamp.
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, onSnapshot, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
     const id = new URLSearchParams(location.search).get("id") || "_";
-    const KEY = "newco_notes_" + id;
+    const ref = doc(db, "hospitals", id);
     const esc = s => String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const fmtDT = d => d.toLocaleString();
 
     let entries = [];
-    try { entries = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
-    if (!Array.isArray(entries)) entries = [];
-    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
 
     const body = document.getElementById("note-body");
     const editBtn = document.getElementById("note-edit");
@@ -825,19 +853,35 @@
     overlay.addEventListener("click", e => { if (e.target === overlay) closeForm(); });
     document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeForm(); });
 
-    function save() {
+    async function save() {
       collectLinks();
       const text = overlay.querySelector("#nf-text").value.trim();
       const links = draftLinks
         .map(l => ({ label: l.label, url: l.url && !/^https?:\/\//i.test(l.url) ? "https://" + l.url : l.url }))
         .filter(l => l.url);
       if (!text && !links.length) { overlay.querySelector("#nf-msg").textContent = "Add some text or a link."; return; }
-      entries.push({ author: username(), ts: (formTs || new Date()).toISOString(), text, links });
-      persist(); render(); closeForm();
+      const rec = { author: username(), ts: (formTs || new Date()).toISOString(), text, links };
+      const msg = overlay.querySelector("#nf-msg");
+      msg.style.color = "rgba(255,255,255,0.7)"; msg.textContent = "Saving\u2026";
+      try {
+        await setDoc(ref, { notes: arrayUnion(rec) }, { merge: true });
+        entries.push(rec); render(); closeForm();
+      } catch (e) {
+        msg.style.color = "#ffb3ae";
+        msg.textContent = "Could not save: " + (e.code || e.message);
+      }
     }
 
     editBtn.addEventListener("click", openForm);
     render();
+    onAuthStateChanged(auth, user => {
+      if (!user) return;
+      onSnapshot(ref, snap => {
+        const d = snap.exists() ? snap.data() : {};
+        entries = Array.isArray(d.notes) ? d.notes : [];
+        render();
+      });
+    });
   </script>
 </body>
 </html>
