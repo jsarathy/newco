@@ -5,6 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NewCo</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ---- Right-panel (#content) three-section layout ---- */
+    /* Left panel (#hospital-side) is untouched. */
+    #content{
+      display:grid;
+      grid-template-columns:1fr clamp(260px,24vw,340px);
+      gap:28px;
+      align-items:start;
+    }
+    .content-left{ display:grid; gap:24px; min-width:0; }
+    .content-top{ display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start; }
+    .content-top > *{ min-width:0; }
+    #content > .content-cal { min-width:0;
+      display:flex; flex-direction:column; gap:16px; }
+
+    .content-head{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+    .content-head .pill{ width:50%; text-align:center; }   /* pill occupies half the middle section */
+
+    /* ---- Section 1: hospital info box (contents provided later, ~8 attributes) ---- */
+    .content-info{
+      border:1px solid var(--rule,rgba(160,170,195,0.25));
+      border-radius:10px; padding:14px 16px;
+      background:var(--panel,rgba(255,255,255,0.03));
+    }
+    .info-title{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; opacity:0.6; }
+    .info-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+    .info-head .cal-edit{ margin:0; padding:4px 12px; font-size:11px; }
+    .info-list{ margin:0; display:flex; flex-direction:column; gap:8px; }
+    .info-row{ display:flex; justify-content:space-between; gap:12px; font-size:13px;
+      padding-bottom:8px; border-bottom:1px solid var(--rule-soft,rgba(160,170,195,0.12)); }
+    .info-row:last-child{ border-bottom:none; padding-bottom:0; }
+    .info-row dt{ opacity:0.6; }
+    .info-row dd{ margin:0; text-align:right; }
+    .info-note{ font-size:11.5px; opacity:0.45; font-style:italic; margin-top:10px; }
+    .info-edit-list{ display:flex; flex-direction:column; gap:8px; }
+    .info-edit-row{ display:grid; grid-template-columns:1fr 1fr auto; gap:6px; align-items:center; }
+    .info-input{ width:100%; padding:6px 8px; border-radius:6px; font-size:12.5px; color:inherit;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:var(--panel,rgba(255,255,255,0.04)); }
+    .info-input:focus{ outline:none; border-color:var(--accent,#5b7cfa); }
+    .info-del{ border:1px solid var(--rule,rgba(160,170,195,0.3)); background:transparent; color:inherit;
+      width:26px; height:26px; border-radius:6px; cursor:pointer; line-height:1; font-size:15px; }
+    .info-del:hover{ border-color:#e0706a; color:#e0706a; }
+    .info-actions{ display:flex; gap:8px; margin-top:10px; }
+    #info-add{ margin-top:8px; display:inline-block; }
+
+    /* ---- Notes box (below the timeline) ---- */
+    .note-box{ border:1px solid var(--rule,rgba(160,170,195,0.25)); border-radius:10px; padding:14px 16px;
+      background:var(--panel,rgba(255,255,255,0.03)); }
+    .note-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+    .note-actions{ display:flex; align-items:center; gap:8px; }
+    .note-actions .cal-edit{ margin:0; padding:4px 12px; font-size:11px; }
+    .icon-btn{ border:1px solid var(--rule,rgba(160,170,195,0.3)); background:transparent; color:inherit;
+      cursor:pointer; width:28px; height:26px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; }
+    .icon-btn:hover{ border-color:var(--accent,#5b7cfa); }
+    .icon-btn.active{ border-color:var(--accent,#5b7cfa); color:var(--accent,#7d97ff); }
+    .note-search-bar{ margin-bottom:12px; }
+    .note-search-bar input{ width:100%; padding:7px 10px; border-radius:7px; color:inherit; font-size:12.5px;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:var(--panel,rgba(255,255,255,0.04)); }
+    .note-search-bar input:focus{ outline:none; border-color:var(--accent,#5b7cfa); }
+    .note-entry{ padding:10px 0; border-bottom:1px solid var(--rule-soft,rgba(160,170,195,0.12)); }
+    .note-entry:last-child{ border-bottom:none; }
+    .note-entry-text{ font-size:13px; line-height:1.5; white-space:pre-wrap; }
+    .note-entry-links{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:5px; }
+    .note-entry-links a{ color:var(--accent,#7d97ff); text-decoration:none; font-size:12.5px; }
+    .note-entry-links a:hover{ text-decoration:underline; }
+    .note-entry-meta{ margin-top:8px; font-size:11px; opacity:0.5; }
+    .note-empty{ font-size:12.5px; opacity:0.5; font-style:italic; }
+
+    /* notes form (reuses .tl-overlay / .tl-dialog) */
+    .tl-field textarea{ width:100%; min-height:96px; resize:vertical; padding:8px 10px; border-radius:7px;
+      color:inherit; font-size:13px; font-family:inherit;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:var(--panel,rgba(255,255,255,0.04)); }
+    .tl-field textarea:focus{ outline:none; border-color:var(--accent,#5b7cfa); }
+    .tl-meta{ font-size:11.5px; opacity:0.75; margin-bottom:14px; line-height:1.55; }
+    .nl-row{ display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:6px; }
+    .nl-row input{ width:100%; padding:7px 9px; border-radius:6px; color:inherit; font-size:12.5px;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:var(--panel,rgba(255,255,255,0.04)); }
+    .nl-del{ width:26px; border-radius:6px; cursor:pointer; color:inherit; font-size:15px; line-height:1;
+      border:1px solid var(--rule,rgba(160,170,195,0.3)); background:transparent; }
+
+    @media (max-width:900px){
+      #content{ grid-template-columns:1fr; }
+      .content-top{ grid-template-columns:1fr; }
+    }
+
+    /* ---- Calendar card ---- */
+    .cal-card{
+      border:1px solid var(--rule,rgba(160,170,195,0.25));
+      border-radius:10px; padding:12px 12px 14px;
+      background:var(--panel,rgba(255,255,255,0.03));
+    }
+    .cal-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .cal-title{ font-weight:600; font-size:14px; letter-spacing:0.01em; }
+    .cal-nav{
+      border:1px solid var(--rule,rgba(160,170,195,0.3));
+      background:transparent; color:inherit; cursor:pointer;
+      width:28px; height:28px; border-radius:7px; font-size:16px; line-height:1;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .cal-nav:hover{ background:rgba(160,170,195,0.12); }
+    .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .cal-dow{ font-size:10px; text-align:center; opacity:0.55; padding:2px 0; text-transform:uppercase; letter-spacing:0.04em; }
+    .cal-day{
+      aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+      font-size:12.5px; border-radius:7px; color:inherit;
+    }
+    .cal-day.empty{ visibility:hidden; }
+    .cal-day.today{ outline:1px solid rgba(160,170,195,0.45); }
+    .cal-day.has-meeting{
+      cursor:pointer; font-weight:600;
+      background:var(--accent,#5b7cfa); color:#fff;
+    }
+    .cal-day.has-meeting:hover{ filter:brightness(1.1); }
+    .cal-day.has-meeting.selected{ box-shadow:0 0 0 2px rgba(255,255,255,0.85) inset; }
+
+    /* ---- Transcript box (appears below calendar on click) ---- */
+    .cal-transcript{
+      border:1px solid var(--rule,rgba(160,170,195,0.25));
+      border-radius:10px; padding:12px 14px;
+      background:var(--panel,rgba(255,255,255,0.03)); font-size:13px;
+    }
+    .cal-transcript[hidden]{ display:none; }
+    .cal-transcript .ct-date{ font-weight:600; margin-bottom:8px; }
+    .cal-transcript ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+
+    /* ---- Recent transcripts list ---- */
+    .cal-recent .cal-recent-title{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; opacity:0.6; margin-bottom:8px; }
+    .cal-recent-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+    .cal-recent-list li{ font-size:13px; }
+
+    .cal-link{ color:var(--accent,#7d97ff); text-decoration:none; }
+    .cal-link:hover{ text-decoration:underline; }
+    .cal-link-pending{ opacity:0.7; cursor:default; border-bottom:1px dashed currentColor; }
+    .cal-link-meta{ display:block; font-size:11px; opacity:0.5; }
+    .cal-empty{ font-size:12.5px; opacity:0.55; font-style:italic; }
+
+    /* ---- Milestone roadmap ---- */
+    .roadmap{ margin-top:0; padding:0 44px; }
+    .tl-track{ position:relative; height:230px; cursor:pointer; }
+    .tl-axis{ position:absolute; left:0; right:0; top:115px; height:4px; transform:translateY(-50%);
+      background:var(--rule,rgba(160,170,195,0.45)); }
+    .tl-tick{ position:absolute; top:115px; width:1px; height:10px; transform:translate(-50%,-50%);
+      background:rgba(160,170,195,0.35); }
+    .tl-tick.major{ height:16px; background:rgba(160,170,195,0.6); }
+    .tl-year{ position:absolute; top:120px; transform:translateX(-50%); font-size:11px; opacity:0.6; }
+    .tl-event{ position:absolute; top:115px; transform:translateX(-50%); cursor:pointer; }
+    .tl-event .tl-dot{ position:absolute; left:50%; top:0; transform:translate(-50%,-50%);
+      width:11px; height:11px; border-radius:50%; background:var(--accent,#5b7cfa);
+      box-shadow:0 0 0 3px rgba(91,124,250,0.18); }
+    .tl-event .tl-label{ position:absolute; left:50%; top:0; transform-origin:0% 50%; white-space:nowrap;
+      font-size:11.5px; padding:2px 8px; border-radius:6px;
+      background:var(--panel,rgba(255,255,255,0.06)); border:1px solid var(--rule,rgba(160,170,195,0.3)); }
+    /* anticlockwise (text ascends) when above the line, clockwise (descends) when below */
+    .tl-event.above .tl-label{ transform:translateY(-14px) rotate(-90deg); }
+    .tl-event.below .tl-label{ transform:translateY(14px) rotate(90deg); }
+    .tl-event:hover .tl-label{ border-color:var(--accent,#5b7cfa); }
+    .tl-event .tl-label.has-link{ color:var(--accent,#7d97ff); text-decoration:underline; }
+    .tl-event .tl-label::after{ display:none; }
+    .tl-hint{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      font-size:10.5px; opacity:0.4; white-space:nowrap; pointer-events:none; }
+
+    /* ---- Roadmap editor ---- */
+    .tl-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.45);
+      display:flex; align-items:center; justify-content:center; z-index:50; }
+    .tl-overlay[hidden]{ display:none; }
+    .tl-dialog{ width:min(340px,92vw); color:inherit; border-radius:12px; padding:18px 18px 16px;
+      background:var(--paper,#161a24); border:1px solid var(--rule,rgba(160,170,195,0.3));
+      box-shadow:0 18px 50px rgba(0,0,0,0.5); }
+    .tl-dlg-title{ font-weight:600; font-size:15px; margin-bottom:14px; }
+    .tl-field{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; font-size:12px; }
+    .tl-field > span{ opacity:0.7; display:flex; justify-content:space-between; }
+    .tl-field em{ font-style:normal; opacity:0.6; }
+    .tl-field input{ width:100%; padding:8px 10px; border-radius:7px; color:inherit; font-size:13px;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:var(--panel,rgba(255,255,255,0.04)); }
+    .tl-field input:focus{ outline:none; border-color:var(--accent,#5b7cfa); }
+    .tl-toggle{ display:flex; gap:6px; }
+    .tl-toggle button{ flex:1; padding:7px; border-radius:7px; color:inherit; cursor:pointer; font-size:12px;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:transparent; }
+    .tl-toggle button.active{ background:var(--accent,#5b7cfa); color:#fff; border-color:var(--accent,#5b7cfa); }
+    .tl-actions{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+    .tl-spacer{ flex:1; }
+    .tl-actions button{ padding:7px 13px; border-radius:7px; cursor:pointer; font-size:12.5px; color:inherit;
+      border:1px solid var(--rule,rgba(160,170,195,0.35)); background:transparent; }
+    .tl-save{ background:var(--accent,#5b7cfa) !important; color:#fff !important; border-color:var(--accent,#5b7cfa) !important; }
+    .tl-del{ color:#e0706a !important; border-color:rgba(224,112,106,0.5) !important; }
+    .tl-msg{ font-size:11.5px; color:#e0706a; margin-top:8px; min-height:14px; }
+
+    /* roadmap editor: white, readable text on a dark dialog */
+    .tl-dialog{ background:#1b2130; }
+    .tl-dialog, .tl-dialog *{ color:#fff; }
+    .tl-dialog .tl-field > span, .tl-dialog .tl-field em{ opacity:0.85; }
+    .tl-dialog .tl-field input{ background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); }
+    .tl-dialog .tl-field textarea, .tl-dialog .nl-row input{ background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); }
+    .tl-dialog .nl-del{ border-color:rgba(255,255,255,0.3); }
+    .tl-dialog .tl-field input::placeholder{ color:rgba(255,255,255,0.5); }
+    .tl-dialog .tl-field textarea::placeholder, .tl-dialog .nl-row input::placeholder{ color:rgba(255,255,255,0.5); }
+    .tl-dialog .tl-toggle button, .tl-dialog .tl-actions button{ border-color:rgba(255,255,255,0.3); }
+    .tl-dialog .tl-msg{ color:#ffb3ae; }
+    .tl-dialog .tl-del{ color:#ffb3ae !important; border-color:rgba(255,179,174,0.5) !important; }
+  </style>
 </head>
 <body class="gated">
   <header>
@@ -19,8 +219,59 @@
   <main>
     <aside id="hospital-side"></aside>
     <section id="content">
-      <h2 id="hospital-name">Hospital</h2>
-      <div id="hospital-body"></div>
+      <div class="content-left">
+        <div class="content-top">
+          <div class="content-info">
+            <div class="info-head">
+              <div class="info-title">Hospital profile</div>
+              <button class="auth-btn cal-edit" id="info-edit" type="button">Edit</button>
+            </div>
+            <div id="info-body"></div>
+          </div>
+          <div class="content-main">
+            <div class="content-head">
+              <h2 id="hospital-name">Hospital</h2>
+              <button class="pill" id="h-dir" type="button">Directory</button>
+            </div>
+            <div id="hospital-body"></div>
+          </div>
+        </div>
+        <div class="roadmap">
+          <div class="tl-track" id="tl-track"></div>
+        </div>
+        <div class="note-box">
+          <div class="note-head">
+            <div class="info-title">Notes</div>
+            <div class="note-actions">
+              <button class="icon-btn" id="note-search" type="button" title="Search notes" aria-label="Search notes">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <circle cx="7" cy="7" r="4.5"></circle><line x1="10.6" y1="10.6" x2="14" y2="14"></line>
+                </svg>
+              </button>
+              <button class="auth-btn cal-edit" id="note-edit" type="button">Edit</button>
+            </div>
+          </div>
+          <div class="note-search-bar" id="note-search-bar" hidden>
+            <input id="note-search-input" type="text" placeholder="Search notes\u2026">
+          </div>
+          <div id="note-body"></div>
+        </div>
+      </div>
+      <div class="content-cal">
+        <div class="cal-card">
+          <div class="cal-head">
+            <button class="cal-nav" id="cal-prev" type="button" aria-label="Previous month">&lsaquo;</button>
+            <div class="cal-title" id="cal-title"></div>
+            <button class="cal-nav" id="cal-next" type="button" aria-label="Next month">&rsaquo;</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+        <div class="cal-transcript" id="cal-transcript" hidden></div>
+        <div class="cal-recent">
+          <div class="cal-recent-title">3 most recent meeting transcripts</div>
+          <ul class="cal-recent-list" id="cal-recent-list"></ul>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -55,7 +306,7 @@
 
       const canEdit = exists; // any signed-in user may edit existing hospital docs
       nameH.textContent = data.name || id;
-      body.innerHTML = "<p>Content to be added.</p>";
+      body.innerHTML = "";
       renderView(data);
 
       function logoHTML() {
@@ -84,10 +335,7 @@
             <div class="member-field"><span class="member-field-label">Email</span><span class="member-field-value">${esc(d.email) || "\u2014"}</span></div>
           </div>
           ${canEdit ? `<button class="auth-btn cal-edit" id="h-edit" type="button">Edit</button>` : ""}
-          <div class="side-spacer"></div>
-          <button class="pill" id="h-dir" type="button">Directory</button>
         `;
-        wireCommon();
         const ed = document.getElementById("h-edit");
         if (ed) ed.addEventListener("click", () => renderEdit(d));
       }
@@ -114,10 +362,7 @@
             <button class="auth-link" id="e-cancel" type="button">Cancel</button>
             <div class="member-save-msg" id="e-msg"></div>
           </div>
-          <div class="side-spacer"></div>
-          <button class="pill" id="h-dir" type="button">Directory</button>
         `;
-        wireCommon();
         document.getElementById("e-cancel").addEventListener("click", () => renderView(data));
         document.getElementById("e-save").addEventListener("click", save);
       }
@@ -142,14 +387,457 @@
         }
       }
 
-      function wireCommon() {
-        const dir = document.getElementById("h-dir");
-        if (dir) dir.addEventListener("click", () => {
-          if (id === "jyothi") location.href = "jyothi/directory.html";
-          else alert("Directory \u2014 no data yet for this hospital");
-        });
-      }
+      // Directory pill now lives in the right panel, inline with the hospital name.
+      const dirBtn = document.getElementById("h-dir");
+      if (dirBtn) dirBtn.addEventListener("click", () => {
+        if (id === "jyothi") location.href = "jyothi/directory.html";
+        else alert("Directory \u2014 no data yet for this hospital");
+      });
     });
+  </script>
+
+  <script type="module">
+    // ---- Meeting calendar (column 3 of the right panel) ----
+    // Transcript storage location is intentionally deferred: each meeting has a
+    // `url` field. Leave it "" for now (renders as a pending, non-clickable link)
+    // and fill it in — or repoint to Firestore — once that decision is made.
+    //
+    // PLACEHOLDER DATA for jyothi below — replace with real meeting records.
+    const MEETINGS = {
+      jyothi: [
+        { date: "2026-06-12", title: "NewCo \u00d7 Jyothi \u2014 pilot review",  url: "" },
+        { date: "2026-05-28", title: "NewCo \u00d7 Jyothi \u2014 data sync",     url: "" },
+        { date: "2026-05-09", title: "NewCo \u00d7 Jyothi \u2014 kickoff",        url: "" }
+      ]
+      // other hospitals default to no meetings
+    };
+
+    const id = new URLSearchParams(location.search).get("id") || "";
+    const meetings = (MEETINGS[id] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+
+    const byDay = {};                       // "YYYY-MM-DD" -> [meeting, ...]
+    meetings.forEach(m => { (byDay[m.date] = byDay[m.date] || []).push(m); });
+
+    const grid     = document.getElementById("cal-grid");
+    const titleEl  = document.getElementById("cal-title");
+    const transcEl = document.getElementById("cal-transcript");
+    const recentEl = document.getElementById("cal-recent-list");
+
+    const esc = s => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    const MONTHS = ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"];
+    const DOW = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+    const pad = n => String(n).padStart(2, "0");
+    const key = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+    const prettyDate = iso => {
+      const [y, m, d] = iso.split("-").map(Number);
+      return `${d} ${MONTHS[m - 1]} ${y}`;
+    };
+
+    const linkHTML = m => m.url
+      ? `<a class="cal-link" href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.title)}</a>`
+      : `<span class="cal-link-pending" title="Transcript location to be decided">${esc(m.title)}<span class="cal-link-meta">link pending</span></span>`;
+
+    const today = new Date();
+    let viewY = today.getFullYear();
+    let viewM = today.getMonth();          // 0-based
+    let selected = null;
+
+    function renderTranscript(iso) {
+      const list = byDay[iso] || [];
+      if (!list.length) { transcEl.hidden = true; return; }
+      transcEl.hidden = false;
+      transcEl.innerHTML =
+        `<div class="ct-date">${esc(prettyDate(iso))}</div>` +
+        `<ul>${list.map(m => `<li>${linkHTML(m)}</li>`).join("")}</ul>`;
+    }
+
+    function renderRecent() {
+      const recent = meetings.slice().reverse().slice(0, 3);  // most recent first
+      recentEl.innerHTML = recent.length
+        ? recent.map(m => `<li>${linkHTML(m)}<span class="cal-link-meta">${esc(prettyDate(m.date))}</span></li>`).join("")
+        : `<li class="cal-empty">No meetings recorded yet.</li>`;
+    }
+
+    function renderMonth() {
+      titleEl.textContent = `${MONTHS[viewM]} ${viewY}`;
+      const firstDow = new Date(viewY, viewM, 1).getDay();
+      const days = new Date(viewY, viewM + 1, 0).getDate();
+      let html = DOW.map(d => `<div class="cal-dow">${d}</div>`).join("");
+      for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty"></div>`;
+      for (let d = 1; d <= days; d++) {
+        const iso = key(viewY, viewM, d);
+        const cls = ["cal-day"];
+        if (byDay[iso]) cls.push("has-meeting");
+        if (iso === selected) cls.push("selected");
+        if (viewY === today.getFullYear() && viewM === today.getMonth() && d === today.getDate()) cls.push("today");
+        html += `<div class="${cls.join(" ")}" data-iso="${iso}">${d}</div>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    grid.addEventListener("click", e => {
+      const cell = e.target.closest(".cal-day.has-meeting");
+      if (!cell) return;
+      selected = cell.dataset.iso;
+      renderMonth();
+      renderTranscript(selected);
+    });
+
+    document.getElementById("cal-prev").addEventListener("click", () => {
+      viewM--; if (viewM < 0) { viewM = 11; viewY--; }
+      renderMonth();
+    });
+    document.getElementById("cal-next").addEventListener("click", () => {
+      viewM++; if (viewM > 11) { viewM = 0; viewY++; }
+      renderMonth();
+    });
+
+    renderMonth();
+    renderRecent();
+  </script>
+
+  <script type="module">
+    // ---- Milestone roadmap (below the Directory pill) ----
+    // Configurable window: TL_YEARS years starting TL_START_ISO (currently 3 yrs
+    // from Mar 2026). Events persist per-hospital in localStorage; the {date,text,pos}
+    // shape is Firestore-ready for a later shared-roadmap migration.
+    const TL_START_ISO = "2026-03-01";
+    const TL_YEARS = 3;
+
+    const id = new URLSearchParams(location.search).get("id") || "_";
+    const STORE_KEY = "newco_roadmap_" + id;
+
+    const z = n => String(n).padStart(2, "0");
+    const toISO = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    const parseISO = s => new Date(s + "T00:00:00").getTime();
+    const esc = s => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    const start = new Date(TL_START_ISO + "T00:00:00");
+    const end = new Date(start); end.setFullYear(end.getFullYear() + TL_YEARS);
+    const START_MS = start.getTime(), SPAN = end.getTime() - START_MS;
+    const startISO = TL_START_ISO, endISO = toISO(end);
+    const pct = ms => Math.max(0, Math.min(100, (ms - START_MS) / SPAN * 100));
+
+    let events = [];
+    try { events = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (e) {}
+    if (!Array.isArray(events)) events = [];
+    const persist = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(events)); } catch (e) {} };
+
+    const track = document.getElementById("tl-track");
+
+    function render() {
+      let ticks = "";
+      const t = new Date(start);
+      while (t.getTime() <= end.getTime()) {
+        const p = pct(t.getTime());
+        const isYear = t.getMonth() === 2; // March boundary
+        ticks += `<div class="tl-tick${isYear ? " major" : ""}" style="left:${p}%"></div>`;
+        if (isYear) ticks += `<div class="tl-year" style="left:${p}%">${t.getFullYear()}</div>`;
+        t.setMonth(t.getMonth() + 3);
+      }
+      const evs = events.map((e, i) => {
+        const p = pct(parseISO(e.date));
+        const above = e.pos !== "below";
+        return `<div class="tl-event ${above ? "above" : "below"}" data-i="${i}" style="left:${p}%">
+                  <div class="tl-label${e.url ? " has-link" : ""}"${e.url ? ` title="${esc(e.url)}"` : ""}>${esc(e.text)}</div>
+                  <div class="tl-dot"></div>
+                </div>`;
+      }).join("");
+      const hint = events.length ? "" : `<div class="tl-hint">Click the timeline to add a milestone</div>`;
+      track.innerHTML = `<div class="tl-axis"></div>${ticks}${evs}${hint}`;
+    }
+
+    track.addEventListener("click", e => {
+      const ev = e.target.closest(".tl-event");
+      if (ev) {
+        const i = +ev.dataset.i;
+        const url = events[i] && events[i].url;
+        // clicking the text of a linked milestone opens the link; the dot still edits
+        if (url && e.target.closest(".tl-label")) { window.open(url, "_blank", "noopener"); return; }
+        openEditor(i, null);
+        return;
+      }
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      openEditor(null, toISO(new Date(START_MS + ratio * SPAN)));
+    });
+
+    // ---- Editor ----
+    const overlay = document.createElement("div");
+    overlay.className = "tl-overlay"; overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="tl-dialog" role="dialog" aria-modal="true">
+        <div class="tl-dlg-title" id="tl-dlg-title">Add milestone</div>
+        <label class="tl-field"><span>Date</span>
+          <input type="date" id="tl-date" min="${startISO}" max="${endISO}"></label>
+        <label class="tl-field"><span>Description <em id="tl-count">0/20</em></span>
+          <input type="text" id="tl-text" maxlength="20" placeholder="e.g. Value demo"></label>
+        <label class="tl-field"><span>Link <em>optional</em></span>
+          <input type="url" id="tl-url" placeholder="https://\u2026"></label>
+        <div class="tl-field"><span>Note position</span>
+          <div class="tl-toggle" id="tl-pos">
+            <button type="button" data-pos="above" class="active">Above</button>
+            <button type="button" data-pos="below">Below</button>
+          </div></div>
+        <div class="tl-actions">
+          <button type="button" class="tl-del" id="tl-del" hidden>Delete</button>
+          <span class="tl-spacer"></span>
+          <button type="button" id="tl-cancel">Cancel</button>
+          <button type="button" class="tl-save" id="tl-save">Save</button>
+        </div>
+        <div class="tl-msg" id="tl-msg"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const $ = sel => overlay.querySelector(sel);
+    let editIndex = null, posVal = "above";
+
+    $("#tl-text").addEventListener("input", () => { $("#tl-count").textContent = $("#tl-text").value.length + "/20"; });
+    $("#tl-pos").addEventListener("click", e => {
+      const b = e.target.closest("button[data-pos]"); if (!b) return;
+      posVal = b.dataset.pos;
+      $("#tl-pos").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+    });
+    $("#tl-cancel").addEventListener("click", closeEditor);
+    overlay.addEventListener("click", e => { if (e.target === overlay) closeEditor(); });
+    $("#tl-del").addEventListener("click", () => {
+      if (editIndex != null) { events.splice(editIndex, 1); persist(); render(); closeEditor(); }
+    });
+    $("#tl-save").addEventListener("click", () => {
+      const date = $("#tl-date").value, text = $("#tl-text").value.trim(), msg = $("#tl-msg");
+      if (!date) { msg.textContent = "Pick a date."; return; }
+      if (date < startISO || date > endISO) { msg.textContent = `Date must be ${startISO} \u2013 ${endISO}.`; return; }
+      if (!text) { msg.textContent = "Enter a short description."; return; }
+      let url = $("#tl-url").value.trim();
+      if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+      const rec = { date, text: text.slice(0, 20), pos: posVal, url };
+      if (editIndex == null) events.push(rec); else events[editIndex] = rec;
+      persist(); render(); closeEditor();
+    });
+
+    function openEditor(index, prefillDate) {
+      editIndex = index;
+      const isEdit = index != null, e = isEdit ? events[index] : null;
+      $("#tl-dlg-title").textContent = isEdit ? "Edit milestone" : "Add milestone";
+      $("#tl-del").hidden = !isEdit;
+      $("#tl-msg").textContent = "";
+      $("#tl-date").value = isEdit ? e.date : (prefillDate || startISO);
+      $("#tl-text").value = isEdit ? e.text : "";
+      $("#tl-url").value = isEdit && e.url ? e.url : "";
+      $("#tl-count").textContent = $("#tl-text").value.length + "/20";
+      posVal = isEdit && e.pos === "below" ? "below" : "above";
+      $("#tl-pos").querySelectorAll("button").forEach(x => x.classList.toggle("active", x.dataset.pos === posVal));
+      overlay.hidden = false;
+      setTimeout(() => $("#tl-text").focus(), 30);
+    }
+    function closeEditor() { overlay.hidden = true; }
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeEditor(); });
+
+    render();
+  </script>
+
+  <script type="module">
+    // ---- Editable hospital profile box (section 1) ----
+    // Attributes persist per-hospital in localStorage; the {label,value}[] shape
+    // is Firestore-ready for a later shared-profile migration.
+    const id = new URLSearchParams(location.search).get("id") || "_";
+    const KEY = "newco_profile_" + id;
+    const DEFAULT = Array.from({ length: 8 }, (_, i) => ({ label: "Attribute " + (i + 1), value: "" }));
+    const esc = s => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    function load() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+      return (Array.isArray(s) && s.length) ? s : DEFAULT.map(r => ({ ...r }));
+    }
+    let rows = load();
+    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch (e) {} };
+
+    const box = document.getElementById("info-body");
+    const editBtn = document.getElementById("info-edit");
+    editBtn.addEventListener("click", renderEdit);
+
+    function renderView() {
+      const shown = rows.filter(r => r.value);   // only attributes that have a value
+      box.innerHTML = shown.length
+        ? `<dl class="info-list">${shown.map(r =>
+            `<div class="info-row"><dt>${esc(r.label) || "&mdash;"}</dt><dd>${esc(r.value)}</dd></div>`).join("")}</dl>`
+        : `<div class="info-note">No details yet &mdash; use Edit to add them.</div>`;
+      editBtn.hidden = false;
+    }
+
+    function collect() {
+      rows = Array.from(box.querySelectorAll(".info-edit-row")).map(r => ({
+        label: r.querySelector(".lbl").value.trim(),
+        value: r.querySelector(".val").value.trim()
+      }));
+      if (!rows.length) rows = [{ label: "", value: "" }];
+    }
+
+    function renderEdit() {
+      editBtn.hidden = true;
+      const list = rows.map((r, i) =>
+        `<div class="info-edit-row" data-i="${i}">
+           <input class="info-input lbl" value="${esc(r.label)}" placeholder="Label">
+           <input class="info-input val" value="${esc(r.value)}" placeholder="Value">
+           <button class="info-del" type="button" title="Remove">&times;</button>
+         </div>`
+      ).join("");
+      box.innerHTML =
+        `<div class="info-edit-list">${list}</div>
+         <button class="auth-link" id="info-add" type="button">+ Add attribute</button>
+         <div class="info-actions">
+           <button class="auth-btn" id="info-save" type="button">Save</button>
+           <button class="auth-link" id="info-cancel" type="button">Cancel</button>
+         </div>`;
+      box.querySelector("#info-add").addEventListener("click", () => { collect(); rows.push({ label: "", value: "" }); renderEdit(); });
+      box.querySelectorAll(".info-del").forEach(b => b.addEventListener("click", e => {
+        collect();
+        rows.splice(+e.target.closest(".info-edit-row").dataset.i, 1);
+        if (!rows.length) rows.push({ label: "", value: "" });
+        renderEdit();
+      }));
+      box.querySelector("#info-cancel").addEventListener("click", () => { rows = load(); renderView(); });
+      box.querySelector("#info-save").addEventListener("click", () => { collect(); persist(); renderView(); });
+    }
+
+    renderView();
+  </script>
+
+  <script type="module">
+    // ---- Notes box (below the timeline) ----
+    // Per-hospital notes persisted to localStorage. Each saved note records the
+    // signed-in user (read from the header banner) and the timestamp shown in the
+    // form. The search button filters the saved notes by text/link/author.
+    const id = new URLSearchParams(location.search).get("id") || "_";
+    const KEY = "newco_notes_" + id;
+    const esc = s => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const fmtDT = d => d.toLocaleString();
+
+    let entries = [];
+    try { entries = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+    if (!Array.isArray(entries)) entries = [];
+    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
+
+    const body = document.getElementById("note-body");
+    const editBtn = document.getElementById("note-edit");
+    const searchBtn = document.getElementById("note-search");
+    const searchBar = document.getElementById("note-search-bar");
+    const searchInput = document.getElementById("note-search-input");
+    let query = "";
+
+    const username = () => {
+      const b = document.getElementById("userbanner");
+      return (b && b.textContent.trim()) || "Unknown user";
+    };
+
+    function render() {
+      if (!entries.length) { body.innerHTML = `<div class="note-empty">No notes yet.</div>`; return; }
+      const q = query.trim().toLowerCase();
+      const shown = entries
+        .map((e, i) => ({ e, i }))
+        .filter(({ e }) => !q
+          || (e.text || "").toLowerCase().includes(q)
+          || (e.author || "").toLowerCase().includes(q)
+          || (e.links || []).some(l => (l.label || "").toLowerCase().includes(q) || (l.url || "").toLowerCase().includes(q)))
+        .reverse(); // newest first
+      if (!shown.length) { body.innerHTML = `<div class="note-empty">No notes match \u201c${esc(query)}\u201d.</div>`; return; }
+      body.innerHTML = shown.map(({ e }) => {
+        const links = (e.links || []).filter(l => l.url).map(l =>
+          `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || l.url)}</a></li>`).join("");
+        return `<div class="note-entry">
+          ${e.text ? `<div class="note-entry-text">${esc(e.text)}</div>` : ""}
+          ${links ? `<ul class="note-entry-links">${links}</ul>` : ""}
+          <div class="note-entry-meta">${esc(e.author)} \u00b7 ${esc(fmtDT(new Date(e.ts)))}</div>
+        </div>`;
+      }).join("");
+    }
+
+    // search toggle + filter
+    searchBtn.addEventListener("click", () => {
+      const showing = !searchBar.hasAttribute("hidden");
+      if (showing) { searchBar.setAttribute("hidden", ""); searchBtn.classList.remove("active"); query = ""; searchInput.value = ""; render(); }
+      else { searchBar.removeAttribute("hidden"); searchBtn.classList.add("active"); searchInput.focus(); }
+    });
+    searchInput.addEventListener("input", () => { query = searchInput.value; render(); });
+
+    // ---- editor form ----
+    const overlay = document.createElement("div");
+    overlay.className = "tl-overlay"; overlay.hidden = true;
+    document.body.appendChild(overlay);
+    let draftLinks = [], formTs = null;
+
+    const linkRowHTML = (l, i) =>
+      `<div class="nl-row" data-i="${i}">
+         <input class="nl-label" value="${esc(l.label || "")}" placeholder="Link text">
+         <input class="nl-url" value="${esc(l.url || "")}" placeholder="https://\u2026">
+         <button class="nl-del" type="button" title="Remove">&times;</button>
+       </div>`;
+    function collectLinks() {
+      draftLinks = Array.from(overlay.querySelectorAll(".nl-row")).map(r => ({
+        label: r.querySelector(".nl-label").value.trim(),
+        url: r.querySelector(".nl-url").value.trim()
+      }));
+    }
+    function paintLinks() {
+      overlay.querySelector("#nf-list").innerHTML = draftLinks.map(linkRowHTML).join("");
+      overlay.querySelectorAll(".nl-del").forEach(b => b.addEventListener("click", e => {
+        collectLinks(); draftLinks.splice(+e.target.closest(".nl-row").dataset.i, 1); paintLinks();
+      }));
+    }
+
+    function openForm() {
+      draftLinks = [];
+      formTs = new Date();
+      overlay.innerHTML = `
+        <div class="tl-dialog" role="dialog" aria-modal="true">
+          <div class="tl-dlg-title">Add note</div>
+          <div class="tl-meta">
+            Signed in as <b>${esc(username())}</b><br>
+            ${esc(fmtDT(formTs))}
+          </div>
+          <label class="tl-field"><span>Text</span>
+            <textarea id="nf-text" placeholder="Add a note\u2026"></textarea></label>
+          <div class="tl-field"><span>Links</span>
+            <div id="nf-list"></div>
+            <button class="auth-link" id="nf-add" type="button">+ Add link</button></div>
+          <div class="tl-actions">
+            <span class="tl-spacer"></span>
+            <button type="button" id="nf-cancel">Cancel</button>
+            <button type="button" class="tl-save" id="nf-save">Save</button>
+          </div>
+          <div class="tl-msg" id="nf-msg"></div>
+        </div>`;
+      paintLinks();
+      overlay.querySelector("#nf-add").addEventListener("click", () => { collectLinks(); draftLinks.push({ label: "", url: "" }); paintLinks(); });
+      overlay.querySelector("#nf-cancel").addEventListener("click", closeForm);
+      overlay.querySelector("#nf-save").addEventListener("click", save);
+      overlay.hidden = false;
+      setTimeout(() => overlay.querySelector("#nf-text").focus(), 30);
+    }
+    function closeForm() { overlay.hidden = true; }
+    overlay.addEventListener("click", e => { if (e.target === overlay) closeForm(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeForm(); });
+
+    function save() {
+      collectLinks();
+      const text = overlay.querySelector("#nf-text").value.trim();
+      const links = draftLinks
+        .map(l => ({ label: l.label, url: l.url && !/^https?:\/\//i.test(l.url) ? "https://" + l.url : l.url }))
+        .filter(l => l.url);
+      if (!text && !links.length) { overlay.querySelector("#nf-msg").textContent = "Add some text or a link."; return; }
+      entries.push({ author: username(), ts: (formTs || new Date()).toISOString(), text, links });
+      persist(); render(); closeForm();
+    }
+
+    editBtn.addEventListener("click", openForm);
+    render();
   </script>
 </body>
 </html>
