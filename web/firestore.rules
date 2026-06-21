@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin()  { return signedIn() && request.auth.token.email == 'admin@newco-ihc.dev'; }
+
+    // ---- Member directory profiles --------------------------------------
+    // Readable by any signed-in user (directory shows name / phone / email).
+    // Writable only by admin or the profile owner. An unclaimed profile may
+    // be claimed by the user whose email matches, who must stamp their uid.
+    match /profiles/{slug} {
+      function ownsExisting() {
+        return signedIn() && 'uid' in resource.data
+          && resource.data.uid != null && resource.data.uid == request.auth.uid;
+      }
+      function claimsUnowned() {
+        return signedIn()
+          && (!('uid' in resource.data) || resource.data.uid == null)
+          && 'email' in resource.data
+          && resource.data.email == request.auth.token.email;
+      }
+
+      allow read: if signedIn();
+      allow update, delete: if isAdmin() || ownsExisting() || claimsUnowned();
+      allow create: if isAdmin()
+        || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+      // ---- Secret credential ------------------------------------------
+      // NOT part of the directory read. Only admin or the profile owner
+      // (including the email-matched claimant) may read or write it.
+      match /private/{docId} {
+        function parent() {
+          return get(/databases/$(database)/documents/profiles/$(slug)).data;
+        }
+        function parentOwner() {
+          return signedIn() && 'uid' in parent()
+            && parent().uid != null && parent().uid == request.auth.uid;
+        }
+        function parentClaim() {
+          return signedIn()
+            && (!('uid' in parent()) || parent().uid == null)
+            && 'email' in parent()
+            && parent().email == request.auth.token.email;
+        }
+        allow read, write: if isAdmin() || parentOwner() || parentClaim();
+      }
+    }
+
+    // ---- Hospitals (unchanged) ------------------------------------------
+    match /hospitals/{id} {
+      allow read, write: if signedIn();
+    }
+  }
+}
